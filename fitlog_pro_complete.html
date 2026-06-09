@@ -1,0 +1,2791 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>FitLog Pro - 完整预览版</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+:root {
+--bg-primary:#0a0a0a;--bg-secondary:#141414;--bg-card:#1a1a1a;--bg-elevated:#222222;
+--border-color:#2a2a2a;--text-negative:#6b7280;--text-neutral:#e5e5e5;--text-positive:#22c55e;
+--text-muted:#737373;--accent-green:#22c55e;--accent-blue:#3b82f6;--accent-red:#ef4444;
+--accent-orange:#f97316;--accent-yellow:#eab308;
+--safe-top:env(safe-area-inset-top,0px);--safe-bottom:env(safe-area-inset-bottom,0px);
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg-primary);color:var(--text-neutral);min-height:100vh;min-height:100dvh;overflow-x:hidden;-webkit-font-smoothing:antialiased}
+.app-container{padding-bottom:calc(80px + var(--safe-bottom));padding-top:var(--safe-top);max-width:430px;margin:0 auto;position:relative}
+
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;background:rgba(10,10,10,0.95);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-top:1px solid var(--border-color);display:flex;justify-content:space-around;align-items:center;height:calc(64px + var(--safe-bottom));padding-bottom:var(--safe-bottom);z-index:1000;max-width:430px;left:50%;transform:translateX(-50%)}
+.nav-item{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;height:100%;color:var(--text-muted);font-size:10px;gap:4px;cursor:pointer;transition:all 0.2s;padding-top:8px}
+.nav-item.active{color:var(--accent-green)}
+.nav-item .nav-icon{font-size:22px}
+
+.page{display:none;animation:fadeIn 0.3s ease}
+.page.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+
+.page-header{padding:16px 20px;padding-top:calc(16px + var(--safe-top));display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;background:rgba(10,10,10,0.9);backdrop-filter:blur(10px);z-index:100}
+.page-title{font-size:28px;font-weight:700;letter-spacing:-0.5px}
+.page-subtitle{font-size:13px;color:var(--text-muted);margin-top:2px}
+.header-actions{display:flex;gap:12px}
+.icon-btn{width:36px;height:36px;border-radius:10px;background:var(--bg-card);border:1px solid var(--border-color);color:var(--text-neutral);display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer}
+
+.card{background:var(--bg-card);border:1px solid var(--border-color);border-radius:16px;margin:12px 16px;padding:16px;overflow:hidden}
+.card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.card-title{font-size:15px;font-weight:600}
+.card-badge{font-size:11px;padding:4px 10px;border-radius:20px;font-weight:500}
+.badge-green{background:rgba(34,197,94,0.15);color:var(--text-positive)}
+.badge-gray{background:rgba(107,114,128,0.15);color:var(--text-negative)}
+.badge-blue{background:rgba(59,130,246,0.15);color:var(--accent-blue)}
+.badge-orange{background:rgba(249,115,22,0.15);color:var(--accent-orange)}
+
+.ai-card{background:linear-gradient(135deg,rgba(34,197,94,0.08) 0%,rgba(34,197,94,0.02) 100%);border:1px solid rgba(34,197,94,0.2);position:relative}
+.ai-card.negative{background:linear-gradient(135deg,rgba(107,114,128,0.08) 0%,rgba(107,114,128,0.02) 100%);border:1px solid rgba(107,114,128,0.3)}
+.ai-card.neutral{background:linear-gradient(135deg,rgba(229,229,229,0.05) 0%,rgba(229,229,229,0.01) 100%);border:1px solid rgba(229,229,229,0.2)}
+.ai-card::before{content:"AI 分析";position:absolute;top:12px;right:16px;font-size:10px;color:var(--accent-green);font-weight:600;letter-spacing:1px;text-transform:uppercase}
+.ai-card.negative::before{color:var(--text-negative);content:"AI 建议"}
+.ai-card.neutral::before{color:var(--text-neutral);content:"AI 分析"}
+
+.ai-recommendation{font-size:15px;line-height:1.6;margin-top:8px}
+.ai-recommendation .highlight{color:var(--text-positive);font-weight:600}
+.ai-recommendation .warning{color:var(--text-negative)}
+.ai-recommendation .neutral{color:var(--text-neutral)}
+
+.metrics-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin:12px 16px}
+.metric-box{background:var(--bg-card);border:1px solid var(--border-color);border-radius:14px;padding:14px}
+.metric-label{font-size:12px;color:var(--text-muted);margin-bottom:6px}
+.metric-value{font-size:24px;font-weight:700}
+.metric-change{font-size:12px;margin-top:4px;font-weight:500}
+.metric-value.negative,.metric-change.negative{color:var(--text-negative)}
+.metric-value.neutral,.metric-change.neutral{color:var(--text-neutral)}
+.metric-value.positive,.metric-change.positive{color:var(--text-positive)}
+
+.list-item{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--border-color)}
+.list-item:last-child{border-bottom:none}
+.list-item-left{display:flex;align-items:center;gap:12px}
+.list-icon{width:36px;height:36px;border-radius:10px;background:var(--bg-elevated);display:flex;align-items:center;justify-content:center;font-size:16px}
+.list-title{font-size:14px;font-weight:500}
+.list-subtitle{font-size:12px;color:var(--text-muted);margin-top:2px}
+.list-value{font-size:14px;font-weight:600}
+
+.form-group{margin-bottom:16px}
+.form-label{display:block;font-size:13px;color:var(--text-muted);margin-bottom:6px;font-weight:500}
+.form-input,.form-select,.form-textarea{width:100%;background:var(--bg-elevated);border:1px solid var(--border-color);border-radius:12px;padding:12px 14px;color:var(--text-neutral);font-size:15px;outline:none;-webkit-appearance:none}
+.form-input:focus,.form-select:focus,.form-textarea:focus{border-color:var(--accent-green)}
+.form-textarea{min-height:80px;resize:vertical}
+
+.btn{width:100%;padding:14px;border-radius:12px;border:none;font-size:15px;font-weight:600;cursor:pointer;transition:all 0.2s;margin-bottom:10px}
+.btn-primary{background:var(--accent-green);color:#000}
+.btn-primary:active{transform:scale(0.98)}
+.btn-secondary{background:var(--bg-elevated);color:var(--text-neutral);border:1px solid var(--border-color)}
+.btn-danger{background:rgba(239,68,68,0.15);color:var(--accent-red)}
+.btn-small{padding:8px 14px;font-size:13px;width:auto;display:inline-block;margin-right:8px;margin-bottom:0}
+
+.toggle-group{display:flex;background:var(--bg-elevated);border-radius:10px;padding:4px}
+.toggle-item{flex:1;padding:8px;text-align:center;font-size:13px;border-radius:8px;cursor:pointer;color:var(--text-muted);transition:all 0.2s}
+.toggle-item.active{background:var(--bg-card);color:var(--text-neutral);font-weight:600}
+
+.slider-labels{display:flex;justify-content:space-between;font-size:11px;color:var(--text-muted);margin-bottom:6px}
+input[type="range"]{-webkit-appearance:none;width:100%;height:6px;border-radius:3px;background:var(--bg-elevated);outline:none}
+input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:var(--accent-green);cursor:pointer;box-shadow:0 2px 8px rgba(34,197,94,0.4)}
+
+.checkbox-group{display:flex;flex-wrap:wrap;gap:10px}
+.checkbox-item{display:flex;align-items:center;gap:6px;font-size:14px;color:var(--text-neutral);cursor:pointer}
+.checkbox-item input[type="checkbox"]{width:18px;height:18px;accent-color:var(--accent-green)}
+
+.progress-bar-bg{height:8px;background:var(--bg-elevated);border-radius:4px;overflow:hidden;margin-top:8px}
+.progress-bar-fill{height:100%;border-radius:4px;transition:width 0.5s ease}
+.progress-bar-fill.positive{background:var(--accent-green)}
+.progress-bar-fill.negative{background:var(--text-negative)}
+.progress-bar-fill.neutral{background:var(--text-neutral)}
+
+.meal-card{background:var(--bg-card);border:1px solid var(--border-color);border-radius:14px;padding:14px;margin-bottom:10px}
+.meal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.meal-name{font-size:14px;font-weight:600}
+.meal-time{font-size:12px;color:var(--text-muted)}
+.meal-items{font-size:13px;line-height:1.7;color:var(--text-neutral)}
+.meal-macro{display:flex;gap:12px;margin-top:8px;font-size:11px}
+.macro-tag{padding:2px 8px;border-radius:6px;background:var(--bg-elevated)}
+
+.chart-container{position:relative;height:200px;margin:12px 0}
+
+.toast{position:fixed;top:calc(20px + var(--safe-top));left:50%;transform:translateX(-50%) translateY(-100px);background:var(--bg-elevated);color:var(--text-neutral);padding:12px 20px;border-radius:12px;font-size:14px;z-index:3000;opacity:0;transition:all 0.3s;border:1px solid var(--border-color);white-space:nowrap}
+.toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+.toast.success{border-color:var(--accent-green);color:var(--text-positive)}
+.toast.error{border-color:var(--accent-red);color:var(--accent-red)}
+
+.empty-state{text-align:center;padding:40px 20px;color:var(--text-muted)}
+.empty-state-icon{font-size:48px;margin-bottom:12px}
+.empty-state-text{font-size:14px}
+
+.section-title{font-size:13px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin:20px 16px 8px;font-weight:600}
+
+.admin-nav{display:flex;gap:8px;padding:0 16px;margin-bottom:12px;overflow-x:auto;scrollbar-width:none}
+.admin-nav::-webkit-scrollbar{display:none}
+.admin-nav-item{padding:8px 16px;border-radius:20px;font-size:13px;white-space:nowrap;cursor:pointer;background:var(--bg-card);border:1px solid var(--border-color);color:var(--text-muted)}
+.admin-nav-item.active{background:var(--accent-green);color:#000;border-color:var(--accent-green);font-weight:600}
+
+.admin-panel{display:none}
+.admin-panel.active{display:block}
+
+.day-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;padding:10px;background:var(--bg-elevated);border-radius:10px}
+.day-label{width:40px;font-size:14px;font-weight:600;color:var(--text-muted)}
+.day-select{flex:1}
+
+.ocr-preview{background:var(--bg-elevated);border-radius:12px;padding:12px;margin-top:10px;font-size:13px}
+.ocr-preview .ocr-item{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border-color)}
+.ocr-preview .ocr-item:last-child{border-bottom:none}
+.ocr-preview .ocr-label{color:var(--text-muted)}
+.ocr-preview .ocr-value{color:var(--text-neutral);font-weight:500}
+.ocr-preview .ocr-value.high{color:var(--text-positive)}
+.ocr-preview .ocr-value.low{color:var(--text-negative)}
+.ocr-preview .ocr-value.warn{color:var(--accent-orange)}
+
+.upload-area{border:2px dashed var(--border-color);border-radius:16px;padding:30px;text-align:center;cursor:pointer;transition:all 0.2s}
+.upload-area:active{border-color:var(--accent-green);background:rgba(34,197,94,0.05)}
+
+.exercise-row{background:var(--bg-elevated);border-radius:12px;padding:12px;margin-bottom:10px}
+.exercise-row .row-grid{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:8px;margin-top:8px}
+.exercise-row .hint{font-size:11px;color:var(--text-muted);margin-top:6px}
+.exercise-row .hint .positive{color:var(--text-positive)}
+
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:2000;display:none;align-items:flex-end;justify-content:center}
+.modal-overlay.active{display:flex}
+.modal-content{background:var(--bg-secondary);border-radius:24px 24px 0 0;width:100%;max-width:430px;max-height:85vh;overflow-y:auto;padding:20px;padding-bottom:calc(20px + var(--safe-bottom));animation:slideUp 0.3s ease}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
+.modal-title{font-size:18px;font-weight:700}
+.modal-close{font-size:24px;color:var(--text-muted);cursor:pointer;background:none;border:none}
+
+.rating-options{display:flex;flex-direction:column;gap:10px;margin:16px 0}
+.rating-option{padding:14px 16px;border-radius:12px;border:1px solid var(--border-color);background:var(--bg-elevated);cursor:pointer;transition:all 0.2s;display:flex;align-items:center;gap:12px}
+.rating-option:active{transform:scale(0.98)}
+.rating-option.selected{border-color:var(--accent-green);background:rgba(34,197,94,0.1)}
+.rating-option .rpe-num{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#000}
+.rating-option .rpe-num.green{background:var(--accent-green)}
+.rating-option .rpe-num.yellow{background:var(--accent-yellow)}
+.rating-option .rpe-num.orange{background:var(--accent-orange)}
+.rating-option .rpe-num.red{background:var(--accent-red)}
+.rating-option .rpe-text{font-size:14px;font-weight:500}
+.rating-option .rpe-desc{font-size:12px;color:var(--text-muted);margin-left:auto}
+
+.db-manager-item{display:flex;justify-content:space-between;align-items:center;padding:12px;background:var(--bg-elevated);border-radius:10px;margin-bottom:8px}
+.db-manager-item .db-name{font-size:14px;font-weight:500}
+.db-manager-item .db-actions{display:flex;gap:8px}
+.db-manager-item .db-actions button{padding:6px 12px;border-radius:6px;border:1px solid var(--border-color);background:var(--bg-card);color:var(--text-muted);font-size:12px;cursor:pointer}
+
+.calendar-day{display:flex;align-items:center;gap:10px;padding:10px;background:var(--bg-elevated);border-radius:10px;margin-bottom:6px}
+.calendar-day .day-info{flex:1}
+.calendar-day .day-type{font-size:13px;font-weight:500}
+.calendar-day .day-time{font-size:11px;color:var(--text-muted)}
+.calendar-day .day-status{font-size:11px;padding:2px 8px;border-radius:6px}
+.day-status.done{background:rgba(34,197,94,0.15);color:var(--text-positive)}
+.day-status.pending{background:rgba(59,130,246,0.15);color:var(--accent-blue)}
+.day-status.rest{background:rgba(107,114,128,0.15);color:var(--text-negative)}
+
+.tag{display:inline-block;padding:4px 10px;border-radius:8px;font-size:12px;font-weight:500;margin-right:6px;margin-bottom:6px}
+.tag-green{background:rgba(34,197,94,0.12);color:var(--text-positive)}
+.tag-gray{background:rgba(107,114,128,0.12);color:var(--text-negative)}
+.tag-blue{background:rgba(59,130,246,0.12);color:var(--accent-blue)}
+
+@media(min-width:431px){body{background:#000}.app-container{background:var(--bg-primary);min-height:100vh}}
+</style>
+</head>
+<body>
+<div class="app-container">
+
+<!-- ==================== TRAINING PAGE ==================== -->
+<div id="page-training" class="page active">
+<div class="page-header">
+<div><div class="page-title">Training</div><div class="page-subtitle" id="training-date"></div></div>
+<div class="header-actions">
+<button class="icon-btn" onclick="openTrainingCalendar()">📅</button>
+</div>
+</div>
+
+<!-- 今日状态概览 -->
+<div class="metrics-grid">
+<div class="metric-box">
+<div class="metric-label">恢复指数</div>
+<div class="metric-value positive" id="t-recovery-score">82</div>
+<div class="metric-change positive" id="t-recovery-status">恢复良好</div>
+</div>
+<div class="metric-box">
+<div class="metric-label">今日计划</div>
+<div class="metric-value neutral" id="t-today-plan">--</div>
+<div class="metric-change neutral" id="t-today-time">14:00 · 65min</div>
+</div>
+</div>
+
+<!-- AI 训练建议 -->
+<div class="card ai-card" id="training-advice-card">
+<div class="card-title">今日训练建议</div>
+<div class="ai-recommendation" id="ai-training-text">
+正在生成今日训练计划...
+</div>
+<div id="full-workout-plan" style="display:none;margin-top:16px;padding-top:16px;border-top:1px solid var(--border-color)">
+<div style="font-size:14px;font-weight:600;margin-bottom:12px;color:var(--text-positive)">完整训练计划（约<span id="plan-total-time">70</span>分钟）</div>
+<div id="workout-plan-list"></div>
+<div style="margin-top:16px;display:flex;gap:10px">
+<button class="btn btn-primary" style="flex:1;margin-bottom:0" onclick="useWorkoutPlan()">使用此计划</button>
+<button class="btn btn-secondary" style="flex:1;margin-bottom:0" onclick="regeneratePlan()">重新生成</button>
+</div>
+</div>
+</div>
+
+<!-- 快速操作 -->
+<div class="card">
+<div style="display:flex;gap:10px">
+<button class="btn btn-primary" style="flex:1;margin-bottom:0" onclick="startTraining()">🏋️ 开始训练</button>
+<button class="btn btn-secondary" style="flex:1;margin-bottom:0" onclick="switchPage('admin')">+ 录入数据</button>
+</div>
+</div>
+
+<!-- 本周训练日历 -->
+<div class="section-title">本周训练日历</div>
+<div class="card" id="training-calendar-card">
+<div id="calendar-list"></div>
+<div style="margin-top:12px;display:flex;gap:8px">
+<button class="btn btn-small btn-secondary" onclick="openTrainingCalendar()">编辑本周</button>
+<button class="btn btn-small btn-secondary" onclick="openNextWeekCalendar()">规划下周</button>
+</div>
+</div>
+
+<!-- 本周亮点 -->
+<div class="section-title">本周亮点</div>
+<div class="card">
+<div class="card-header">
+<div class="card-title">本周容量</div>
+<div class="card-badge badge-green">+8% 环比</div>
+</div>
+<div style="font-size:24px;font-weight:700;color:var(--text-positive);margin-bottom:8px">15.2k <span style="font-size:13px;color:var(--text-muted);font-weight:400">/ 目标 22k</span></div>
+<div class="progress-bar-bg"><div class="progress-bar-fill positive" style="width:69%"></div></div>
+<div style="margin-top:12px;font-size:13px;color:var(--text-muted)">周一/周五待执行</div>
+
+<div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border-color)">
+<div style="font-size:14px;font-weight:600;margin-bottom:10px">🏆 近期PR</div>
+<div class="list-item" style="padding:8px 0">
+<div class="list-item-left">
+<div class="list-icon" style="background:rgba(34,197,94,0.15)">🎯</div>
+<div>
+<div class="list-title" style="color:var(--text-positive)">杠铃卧推</div>
+<div class="list-subtitle">82.5kg×5 · 6月7日</div>
+</div>
+</div>
+</div>
+</div>
+
+<div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border-color)">
+<div style="font-size:14px;font-weight:600;margin-bottom:10px">📊 近5次上肢推容量</div>
+<div style="font-size:13px;color:var(--text-muted);line-height:1.8">
+18.5k → 19.2k → 20.1k → <span style="color:var(--text-positive)">19.8k</span> → <span style="color:var(--text-positive);font-weight:600">21.2k</span>
+</div>
+</div>
+</div>
+
+<!-- 近期训练 -->
+<div class="section-title">近期训练</div>
+<div id="recent-training-list"></div>
+</div>
+
+<!-- ==================== NUTRITION PAGE ==================== -->
+<div id="page-nutrition" class="page">
+<div class="page-header">
+<div><div class="page-title">Nutrition</div><div class="page-subtitle" id="nutrition-date"></div></div>
+<div class="header-actions">
+<button class="icon-btn" onclick="refreshNutrition()">↻</button>
+</div>
+</div>
+
+<!-- 今日状态 -->
+<div class="card">
+<div class="card-header">
+<div class="card-title">今日状态</div>
+<div class="card-badge badge-green" id="nutrition-status-badge">力量训练日</div>
+</div>
+<div id="nutrition-status-text" style="font-size:13px;color:var(--text-muted);line-height:1.6">
+依据：昨日睡眠7.8h · 恢复82分 · 今日计划上肢推14:00
+</div>
+</div>
+
+<!-- AI 餐食推荐 -->
+<div class="card ai-card">
+<div class="card-title">今日餐食推荐</div>
+<div class="ai-recommendation" id="ai-nutrition-text">
+今日为<span class="highlight">力量训练日</span>，目标增肌期。<br>
+总热量目标 <span class="highlight">2,750 kcal</span>（+200训练盈余）<br><br>
+💡 昨晚恢复良好，建议今日充足碳水支持下午的上肢推训练
+</div>
+</div>
+
+<!-- 宏量目标 -->
+<div class="card">
+<div class="card-header"><div class="card-title">宏量营养素目标</div></div>
+<div id="macro-targets"></div>
+</div>
+
+<!-- 推荐餐食安排 -->
+<div class="section-title">推荐餐食安排</div>
+<div id="meal-plan"></div>
+
+<!-- 补剂建议 -->
+<div class="section-title">补剂建议</div>
+<div class="card" id="supplement-card">
+<div id="supplement-list"></div>
+</div>
+</div>
+
+<!-- ==================== RECOVERY PAGE ==================== -->
+<div id="page-recovery" class="page">
+<div class="page-header">
+<div><div class="page-title">Recovery</div><div class="page-subtitle">睡眠与恢复追踪</div></div>
+<div class="header-actions">
+<button class="icon-btn" onclick="switchPage('admin')">+</button>
+</div>
+</div>
+
+<!-- 恢复指数 -->
+<div class="metrics-grid">
+<div class="metric-box">
+<div class="metric-label">恢复指数</div>
+<div class="metric-value positive" id="recovery-score">82</div>
+<div class="metric-change positive" id="recovery-status">恢复良好</div>
+</div>
+<div class="metric-box">
+<div class="metric-label">7日平均睡眠</div>
+<div class="metric-value" id="avg-sleep">7.2h</div>
+<div class="metric-change" id="avg-sleep-status">睡眠尚可</div>
+</div>
+</div>
+
+<!-- 恢复趋势 -->
+<div class="card">
+<div class="card-header">
+<div class="card-title">恢复趋势</div>
+<div class="toggle-group" style="width:auto">
+<div class="toggle-item active" onclick="switchRecoveryChart(this,7)">7日</div>
+<div class="toggle-item" onclick="switchRecoveryChart(this,30)">30日</div>
+</div>
+</div>
+<div class="chart-container"><canvas id="recoveryChart"></canvas></div>
+</div>
+
+<!-- 睡眠趋势 -->
+<div class="card">
+<div class="card-header"><div class="card-title">睡眠时长趋势</div></div>
+<div class="chart-container"><canvas id="sleepChart"></canvas></div>
+</div>
+
+<!-- 睡眠阶段分析 -->
+<div class="section-title">睡眠阶段分析</div>
+<div class="card" id="sleep-stage-card">
+<div class="list-item" style="padding:0 0 12px 0">
+<div class="list-item-left">
+<div class="list-icon" style="background:rgba(34,197,94,0.15)">🟣</div>
+<div>
+<div class="list-title">深度睡眠</div>
+<div class="list-subtitle">恢复质量核心指标</div>
+</div>
+</div>
+<div class="list-value" style="color:var(--text-negative)">40min (8.6%)</div>
+</div>
+<div class="list-item" style="padding:12px 0">
+<div class="list-item-left">
+<div class="list-icon" style="background:rgba(59,130,246,0.15)">🔵</div>
+<div>
+<div class="list-title">核心睡眠</div>
+<div class="list-subtitle">主要睡眠阶段</div>
+</div>
+</div>
+<div class="list-value" style="color:var(--text-neutral)">5h10m (66.5%)</div>
+</div>
+<div class="list-item" style="padding:12px 0">
+<div class="list-item-left">
+<div class="list-icon" style="background:rgba(59,130,246,0.15)">🩵</div>
+<div>
+<div class="list-title">REM睡眠</div>
+<div class="list-subtitle">记忆与情绪调节</div>
+</div>
+</div>
+<div class="list-value" style="color:var(--text-neutral)">1h57m (25.2%)</div>
+</div>
+<div class="list-item" style="padding:12px 0 0 0">
+<div class="list-item-left">
+<div class="list-icon" style="background:rgba(239,68,68,0.15)">🟠</div>
+<div>
+<div class="list-title">清醒时间</div>
+<div class="list-subtitle">夜间觉醒</div>
+</div>
+</div>
+<div class="list-value" style="color:var(--text-negative)">1h9m (14.7%)</div>
+</div>
+</div>
+
+<!-- 训练负荷与恢复 -->
+<div class="section-title">训练负荷与恢复</div>
+<div class="card">
+<div class="card-header"><div class="card-title">容量 vs 恢复指数</div></div>
+<div class="chart-container"><canvas id="loadRecoveryChart"></canvas></div>
+</div>
+
+<!-- 睡眠记录 -->
+<div class="section-title">睡眠记录</div>
+<div id="sleep-entries"></div>
+</div>
+
+<!-- ==================== PROGRESS PAGE ==================== -->
+<div id="page-progress" class="page">
+<div class="page-header">
+<div><div class="page-title">Progress</div><div class="page-subtitle">身体成分与成果</div></div>
+<div class="header-actions">
+<button class="icon-btn" onclick="switchPage('admin')">+</button>
+</div>
+</div>
+
+<!-- 最新体测 -->
+<div class="card" id="latest-body-comp">
+<div class="card-header">
+<div class="card-title">最新体测 · 6月5日</div>
+<div class="card-badge badge-green">强壮有力</div>
+</div>
+<div class="metrics-grid" style="margin:0;gap:10px">
+<div class="metric-box" style="padding:12px">
+<div class="metric-label">体重</div>
+<div class="metric-value neutral">67.2kg</div>
+<div class="metric-change neutral">参考 67.2kg</div>
+</div>
+<div class="metric-box" style="padding:12px">
+<div class="metric-label">骨骼肌</div>
+<div class="metric-value positive">31.3kg</div>
+<div class="metric-change positive">↑+0.5 距目标 -2.9</div>
+</div>
+<div class="metric-box" style="padding:12px">
+<div class="metric-label">脂肪量</div>
+<div class="metric-value negative">12.0kg</div>
+<div class="metric-change negative">↓-0.8 距参考 +3.9</div>
+</div>
+<div class="metric-box" style="padding:12px">
+<div class="metric-label">体脂率</div>
+<div class="metric-value negative">17.8%</div>
+<div class="metric-change negative">↓-1.2 距目标 +7.8%</div>
+</div>
+</div>
+<div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border-color);display:flex;justify-content:space-between;font-size:12px;color:var(--text-muted)">
+<span>去脂体重 55.2kg</span>
+<span>BMR 1563kcal</span>
+<span>BMI 22.6</span>
+</div>
+</div>
+
+<!-- 目标进度 -->
+<div class="card">
+<div class="card-title" style="margin-bottom:16px">目标进度</div>
+<div style="margin-bottom:14px">
+<div style="display:flex;justify-content:space-between;margin-bottom:6px">
+<span style="font-size:13px">骨骼肌 31.3kg → 34.2kg</span>
+<span style="font-size:13px;color:var(--text-positive);font-weight:600">91%</span>
+</div>
+<div class="progress-bar-bg"><div class="progress-bar-fill positive" style="width:91%"></div></div>
+</div>
+<div style="margin-bottom:14px">
+<div style="display:flex;justify-content:space-between;margin-bottom:6px">
+<span style="font-size:13px">体脂率 17.8% → 12.0%</span>
+<span style="font-size:13px;color:var(--text-negative);font-weight:600">56%</span>
+</div>
+<div class="progress-bar-bg"><div class="progress-bar-fill negative" style="width:56%"></div></div>
+</div>
+<div>
+<div style="display:flex;justify-content:space-between;margin-bottom:6px">
+<span style="font-size:13px">当前体型：强壮有力 → 健美体格</span>
+<span style="font-size:13px;color:var(--text-neutral);font-weight:600">进行中</span>
+</div>
+</div>
+</div>
+
+<!-- 趋势分析 -->
+<div class="section-title">趋势分析（近8次）</div>
+<div class="card">
+<div class="card-header"><div class="card-title">体重变化</div></div>
+<div class="chart-container"><canvas id="weightChart"></canvas></div>
+</div>
+<div class="card">
+<div class="card-header"><div class="card-title">骨骼肌量 vs 脂肪量</div></div>
+<div class="chart-container"><canvas id="compositionChart"></canvas></div>
+</div>
+<div class="card">
+<div class="card-header"><div class="card-title">体脂率趋势</div></div>
+<div class="chart-container"><canvas id="bodyfatChart"></canvas></div>
+</div>
+
+<!-- 体测历史 -->
+<div class="section-title">体测历史</div>
+<div id="body-comp-history"></div>
+</div>
+
+<!-- ==================== DATA ADMIN PAGE ==================== -->
+<div id="page-admin" class="page">
+<div class="page-header">
+<div><div class="page-title">Data Admin</div><div class="page-subtitle">数据录入与管理</div></div>
+</div>
+
+<div class="admin-nav">
+<div class="admin-nav-item active" onclick="switchAdminTab('profile')">档案</div>
+<div class="admin-nav-item" onclick="switchAdminTab('sleep')">睡眠</div>
+<div class="admin-nav-item" onclick="switchAdminTab('bodycomp')">体测</div>
+<div class="admin-nav-item" onclick="switchAdminTab('training')">训练</div>
+<div class="admin-nav-item" onclick="switchAdminTab('backup')">备份</div>
+</div>
+
+<!-- Admin Profile -->
+<div id="admin-profile" class="admin-panel active">
+<div class="card">
+<div class="card-title" style="margin-bottom:16px">个人档案</div>
+<div class="form-group"><label class="form-label">昵称</label><input type="text" class="form-input" id="p-name" placeholder="你的名字"></div>
+<div class="form-group">
+<label class="form-label">性别</label>
+<div class="toggle-group">
+<div class="toggle-item active" data-value="male" onclick="setToggle(this)">男</div>
+<div class="toggle-item" data-value="female" onclick="setToggle(this)">女</div>
+</div>
+</div>
+<div class="form-group"><label class="form-label">生日</label><input type="date" class="form-input" id="p-birthday"></div>
+<div class="form-group"><label class="form-label">当前年龄</label><div id="p-age-display" style="font-size:18px;font-weight:700;color:var(--text-neutral)">--</div></div>
+<div class="form-group"><label class="form-label">身高 (cm)</label><input type="number" class="form-input" id="p-height" step="0.1" placeholder="172.5"></div>
+<div class="form-group">
+<label class="form-label">所在城市 <button class="btn btn-small btn-secondary" onclick="getLocation()">📍 定位</button></label>
+<input type="text" class="form-input" id="p-city" placeholder="例如：北京">
+</div>
+<div class="form-group">
+<label class="form-label">做饭条件</label>
+<select class="form-select" id="p-cooking">
+<option value="full">可自己做饭</option>
+<option value="partial">偶尔做饭</option>
+<option value="none">主要靠外卖/食堂</option>
+</select>
+</div>
+<div class="form-group">
+<label class="form-label">健身目标</label>
+<select class="form-select" id="p-goal">
+<option value="muscle">增肌</option>
+<option value="fatloss">减脂</option>
+<option value="recomp">身体重组</option>
+<option value="maintain">维持</option>
+</select>
+</div>
+<div class="form-group">
+<label class="form-label">伤病史（多选）</label>
+<div class="checkbox-group">
+<label class="checkbox-item"><input type="checkbox" id="injury-shoulder" value="shoulder">肩关节</label>
+<label class="checkbox-item"><input type="checkbox" id="injury-back" value="back">腰椎</label>
+<label class="checkbox-item"><input type="checkbox" id="injury-knee" value="knee">膝关节</label>
+<label class="checkbox-item"><input type="checkbox" id="injury-wrist" value="wrist">腕关节</label>
+<label class="checkbox-item"><input type="checkbox" id="injury-other" value="other">其他</label>
+</div>
+</div>
+</div>
+
+<div class="card">
+<div class="card-title" style="margin-bottom:16px">期望训练模式（灵活模式）</div>
+<div id="training-mode-days"></div>
+<div style="margin-top:12px;font-size:12px;color:var(--text-muted)">AI会根据恢复状态动态调整日期，顺延训练计划</div>
+</div>
+
+<div class="card">
+<div class="card-title" style="margin-bottom:16px">身材目标</div>
+<div class="form-group">
+<label class="form-label">目标体型</label>
+<select class="form-select" id="p-body-goal" onchange="updateBodyGoal()">
+<option value="healthy">健康均衡</option>
+<option value="fit">精壮有型</option>
+<option value="strong" selected>强壮有力</option>
+<option value="bodybuilder">健美体格</option>
+</select>
+</div>
+<div id="body-goal-preview" style="font-size:13px;color:var(--text-muted);line-height:1.8">
+基于 172.5cm / 男性：<br>
+目标骨骼肌：34.2 kg<br>
+目标体脂率：12.0%<br>
+参考体重：73.4 kg<br>
+参考脂肪量：7.3 kg
+</div>
+</div>
+
+<button class="btn btn-primary" onclick="saveProfile()">保存档案</button>
+</div>
+
+<!-- Admin Sleep -->
+<div id="admin-sleep" class="admin-panel">
+<div class="card">
+<div class="card-title" style="margin-bottom:16px">添加睡眠记录</div>
+<div class="form-group"><label class="form-label">日期</label><input type="date" class="form-input" id="s-date"></div>
+<div class="upload-area" onclick="document.getElementById('s-screenshot').click()">
+<div style="font-size:32px;margin-bottom:8px">📷</div>
+<div style="font-size:14px;color:var(--text-neutral);margin-bottom:4px">上传 iOS 健康睡眠截图</div>
+<div style="font-size:12px;color:var(--text-muted)">同时选择：睡眠详情 + 睡眠评分两张</div>
+<input type="file" id="s-screenshot" accept="image/*" multiple style="display:none" onchange="handleSleepScreenshot(this)">
+</div>
+<div id="sleep-ocr-result" style="display:none"></div>
+<div style="margin:16px 0;text-align:center;color:var(--text-muted);font-size:13px">— 或 —</div>
+<button class="btn btn-secondary" onclick="markSleepMissing()">⏭️ 未佩戴设备，标记为未记录</button>
+</div>
+<div class="section-title">睡眠历史</div>
+<div id="admin-sleep-history"></div>
+</div>
+
+<!-- Admin Bodycomp -->
+<div id="admin-bodycomp" class="admin-panel">
+<div class="card">
+<div class="card-title" style="margin-bottom:16px">批量导入（Excel/CSV）</div>
+<div class="upload-area" onclick="document.getElementById('bc-file').click()">
+<div style="font-size:32px;margin-bottom:8px">📁</div>
+<div style="font-size:14px;color:var(--text-neutral);margin-bottom:4px">上传 Excel 文件</div>
+<div style="font-size:12px;color:var(--text-muted)">支持 .xlsx / .xls / .csv</div>
+<input type="file" id="bc-file" accept=".xlsx,.xls,.csv" style="display:none" onchange="handleBodycompFile(this)">
+</div>
+<div id="bc-import-preview" style="display:none"></div>
+</div>
+<div class="card">
+<div class="card-title" style="margin-bottom:16px">单条快速录入</div>
+<div class="form-group"><label class="form-label">日期</label><input type="date" class="form-input" id="bc-date"></div>
+<div class="form-group"><label class="form-label">测试状态</label><select class="form-select" id="bc-condition"><option value="fasting">空腹未饮水</option><option value="post-workout-full">训练后充分饮水</option><option value="post-workout-light">训练后适量饮水</option><option value="other">其他</option></select></div>
+<div class="form-group"><label class="form-label">体重 (kg)</label><input type="number" class="form-input" id="bc-weight" step="0.1"></div>
+<div class="form-group"><label class="form-label">骨骼肌 (kg)</label><input type="number" class="form-input" id="bc-muscle" step="0.1"></div>
+<div class="form-group"><label class="form-label">体脂肪 (kg)</label><input type="number" class="form-input" id="bc-fat" step="0.1"></div>
+<div class="form-group"><label class="form-label">体脂率 (%)</label><input type="number" class="form-input" id="bc-fatpct" step="0.1"></div>
+<div class="form-group"><label class="form-label">去脂体重 (kg)</label><input type="number" class="form-input" id="bc-lean" step="0.1"></div>
+<div class="form-group"><label class="form-label">基础代谢 (kcal)</label><input type="number" class="form-input" id="bc-bmr"></div>
+<div class="form-group"><label class="form-label">内脏脂肪等级</label><input type="number" class="form-input" id="bc-visceral" placeholder="可选"></div>
+<button class="btn btn-primary" onclick="addBodycomp()">保存体测数据</button>
+</div>
+<div class="section-title">体测历史</div>
+<div id="admin-bodycomp-history"></div>
+</div>
+
+<!-- Admin Training -->
+<div id="admin-training" class="admin-panel">
+<div class="card">
+<div class="card-header">
+<div class="card-title">添加训练记录</div>
+<div class="card-badge badge-blue" style="cursor:pointer" onclick="openTrainingDBManager()">训练库管理</div>
+</div>
+<div class="form-group"><label class="form-label">日期</label><input type="date" class="form-input" id="t-date"></div>
+<div class="form-group">
+<label class="form-label">训练类型</label>
+<select class="form-select" id="t-type" onchange="onTrainingTypeChange()">
+<option value="">请选择...</option>
+</select>
+</div>
+<div class="upload-area" onclick="document.getElementById('t-screenshot').click()">
+<div style="font-size:32px;margin-bottom:8px">📷</div>
+<div style="font-size:14px;color:var(--text-neutral);margin-bottom:4px">上传 iOS 健身截图（可选）</div>
+<div style="font-size:12px;color:var(--text-muted)">自动提取时长、心率、卡路里</div>
+<input type="file" id="t-screenshot" accept="image/*" style="display:none" onchange="handleTrainingScreenshot(this)">
+</div>
+<div id="training-ocr-result" style="display:none"></div>
+<div class="form-group" style="margin-top:16px"><label class="form-label">训练时长 (分钟)</label><input type="number" class="form-input" id="t-duration" placeholder="60"></div>
+<div id="strength-section" style="display:none">
+<div class="form-group" style="display:flex;justify-content:space-between;align-items:center">
+<label class="form-label">动作明细</label>
+<button class="btn btn-small btn-secondary" onclick="openExerciseDBManager()">动作库管理</button>
+</div>
+<div id="exercise-list"></div>
+<button class="btn btn-secondary" onclick="addExerciseRow()">+ 添加动作</button>
+<div style="margin-top:12px;font-size:14px;color:var(--text-muted)">预计容量：<span id="volume-display" style="color:var(--text-positive);font-weight:700">0</span> kg</div>
+</div>
+<div id="cardio-section" style="display:none">
+<div class="form-group"><label class="form-label">平均心率 (bpm)</label><input type="number" class="form-input" id="t-hr" placeholder="150"></div>
+<div class="form-group"><label class="form-label">消耗卡路里 (kcal)</label><input type="number" class="form-input" id="t-calories" placeholder="380"></div>
+<div class="form-group"><label class="form-label">距离 (km，可选)</label><input type="number" class="form-input" id="t-distance" step="0.1"></div>
+</div>
+<div class="form-group"><label class="form-label">备注</label><input type="text" class="form-input" id="t-notes" placeholder="可选"></div>
+<button class="btn btn-primary" onclick="saveTraining()">保存训练记录</button>
+</div>
+<div class="section-title">训练历史</div>
+<div id="admin-training-history"></div>
+</div>
+
+<!-- Admin Backup -->
+<div id="admin-backup" class="admin-panel">
+<div class="card">
+<div class="card-title" style="margin-bottom:16px">数据备份与恢复</div>
+<div style="font-size:13px;color:var(--text-muted);line-height:1.6;margin-bottom:16px">所有数据存储在浏览器本地。建议定期导出备份，防止数据丢失。</div>
+<button class="btn btn-primary" onclick="exportData()" style="margin-bottom:10px">导出所有数据 (JSON)</button>
+<button class="btn btn-secondary" onclick="document.getElementById('import-file').click()">导入数据</button>
+<input type="file" id="import-file" style="display:none" accept=".json" onchange="importData(this)">
+</div>
+<div class="card" style="margin-top:12px">
+<div class="card-title" style="margin-bottom:16px;color:var(--accent-red)">危险操作</div>
+<button class="btn btn-danger" onclick="clearAllData()">清除所有数据</button>
+</div>
+<div class="section-title">数据概览</div>
+<div class="card"><div id="data-overview"></div></div>
+</div>
+</div>
+
+<!-- ==================== BOTTOM NAV ==================== -->
+<div class="bottom-nav">
+<div class="nav-item active" onclick="switchPage('training')">
+<span class="nav-icon">💪</span>
+<span>Training</span>
+</div>
+<div class="nav-item" onclick="switchPage('nutrition')">
+<span class="nav-icon">🥗</span>
+<span>Nutrition</span>
+</div>
+<div class="nav-item" onclick="switchPage('recovery')">
+<span class="nav-icon">😴</span>
+<span>Recovery</span>
+</div>
+<div class="nav-item" onclick="switchPage('progress')">
+<span class="nav-icon">📈</span>
+<span>Progress</span>
+</div>
+<div class="nav-item" onclick="switchPage('admin')">
+<span class="nav-icon">⚙️</span>
+<span>Admin</span>
+</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- Modals -->
+<div class="modal-overlay" id="rating-modal">
+<div class="modal-content">
+<div class="modal-header"><div class="modal-title">今日训练整体强度</div><button class="modal-close" onclick="closeModal()">×</button></div>
+<div id="rating-modal-body"></div>
+</div>
+</div>
+
+<div class="modal-overlay" id="training-db-modal">
+<div class="modal-content">
+<div class="modal-header"><div class="modal-title">训练库管理</div><button class="modal-close" onclick="closeTrainingDBModal()">×</button></div>
+<div id="training-db-body"></div>
+</div>
+</div>
+
+<div class="modal-overlay" id="exercise-db-modal">
+<div class="modal-content">
+<div class="modal-header"><div class="modal-title">动作库管理</div><button class="modal-close" onclick="closeExerciseDBModal()">×</button></div>
+<div id="exercise-db-body"></div>
+</div>
+</div>
+
+<div class="modal-overlay" id="calendar-modal">
+<div class="modal-content">
+<div class="modal-header"><div class="modal-title" id="calendar-modal-title">训练日历</div><button class="modal-close" onclick="closeCalendarModal()">×</button></div>
+<div id="calendar-modal-body"></div>
+</div>
+</div>
+
+
+<script>
+// ==================== DATA STORE ====================
+const Store = {
+get(key){try{return JSON.parse(localStorage.getItem('fitlog_'+key))||[]}catch{return[]}},
+set(key,value){localStorage.setItem('fitlog_'+key,JSON.stringify(value))},
+getProfile(){try{return JSON.parse(localStorage.getItem('fitlog_profile'))||{}}catch{return{}}},
+setProfile(v){localStorage.setItem('fitlog_profile',JSON.stringify(v))},
+getTrainingDB(){try{return JSON.parse(localStorage.getItem('fitlog_training_db'))||null}catch{return null}},
+setTrainingDB(v){localStorage.setItem('fitlog_training_db',JSON.stringify(v))},
+getExerciseDB(){try{return JSON.parse(localStorage.getItem('fitlog_exercise_db'))||null}catch{return null}},
+setExerciseDB(v){localStorage.setItem('fitlog_exercise_db',JSON.stringify(v))},
+getCalendar(){try{return JSON.parse(localStorage.getItem('fitlog_calendar'))||{}}catch{return{}}},
+setCalendar(v){localStorage.setItem('fitlog_calendar',JSON.stringify(v))}
+};
+
+// ==================== DEFAULT DATA ====================
+const DEFAULT_TRAINING_DB = {
+frequent: [
+{value:'func-push',label:'功能性力量训练 - 上肢推'},
+{value:'func-pull',label:'功能性力量训练 - 上肢拉'},
+{value:'func-legs',label:'功能性力量训练 - 下肢'},
+{value:'func-full',label:'功能性力量训练 - 全身'},
+{value:'hiit',label:'高强度间歇训练'},
+{value:'cardio',label:'低强度有氧'},
+{value:'core',label:'核心训练'},
+{value:'rest',label:'休息/恢复'}
+],
+more: [
+{value:'yoga',label:'瑜伽/拉伸'},
+{value:'outdoor',label:'户外活动'},
+{value:'run-outdoor',label:'跑步（户外）'},
+{value:'run-indoor',label:'跑步（室内）'},
+{value:'walk',label:'步行'},
+{value:'cycle',label:'骑行'},
+{value:'swim',label:'游泳'},
+{value:'box',label:'拳击'},
+{value:'climb',label:'攀岩'},
+{value:'hike',label:'徒步'},
+{value:'dance',label:'舞蹈'},
+{value:'ski',label:'滑雪'},
+{value:'skate',label:'滑冰'},
+{value:'ball-basket',label:'篮球'},
+{value:'ball-tennis',label:'网球'},
+{value:'ball-soccer',label:'足球'},
+{value:'golf',label:'高尔夫'},
+{value:'pilates',label:'普拉提'},
+{value:'taiji',label:'太极'},
+{value:'meditation',label:'冥想（正念）'},
+{value:'other',label:'其他'}
+]
+};
+
+const DEFAULT_EXERCISE_DB = {
+'胸':['杠铃平板卧推','哑铃平板卧推','哑铃斜上卧推','哑铃下斜卧推','器械坐姿推胸','绳索夹胸'],
+'背':['自重引体向上','杠铃俯身划船','哑铃单臂划船','器械坐姿划船','高位下拉','直臂下压','绳索面拉'],
+'肩':['杠铃站姿推举','哑铃坐姿推举','哑铃侧平举','哑铃前平举','绳索反向飞鸟','杠铃直立划船'],
+'腿前':['杠铃深蹲','杠铃前蹲','器械腿举','器械腿屈伸','泽奇深蹲'],
+'腿后':['杠铃罗马尼亚硬拉','哑铃单腿硬拉','器械腿弯举','臀桥','山羊挺身','器械坐姿腿弯举'],
+'手臂':['杠铃二头弯举','哑铃锤式弯举','绳索三头下压','仰卧臂屈伸','器械牧师凳弯举'],
+'核心':['平板支撑','悬垂举腿','绳索卷腹','俄罗斯转体','死虫']
+};
+
+const DAYS = ['周一','周二','周三','周四','周五','周六','周日'];
+const SMI_TARGETS = {healthy:8.5,fit:9.5,strong:10.5,bodybuilder:11.5};
+const FAT_TARGETS = {healthy:18,fit:14,strong:12,bodybuilder:10};
+
+function initDBs(){
+if(!Store.getTrainingDB())Store.setTrainingDB(DEFAULT_TRAINING_DB);
+if(!Store.getExerciseDB())Store.setExerciseDB(DEFAULT_EXERCISE_DB);
+}
+
+// ==================== UTILS ====================
+function formatDate(d){return d.toISOString().split('T')[0]}
+function formatDateCN(s){const d=new Date(s);return `${d.getMonth()+1}月${d.getDate()}日`}
+function offsetDate(date,days){const d=new Date(date);d.setDate(d.getDate()+days);return d}
+function showToast(msg,type){const t=document.getElementById('toast');t.textContent=msg;t.className='toast '+(type||'success');setTimeout(()=>t.classList.add('show'),10);setTimeout(()=>t.classList.remove('show'),2500)}
+function calculateAge(birthday){if(!birthday)return '--';const birth=new Date(birthday);const today=new Date();let age=today.getFullYear()-birth.getFullYear();const m=today.getMonth()-birth.getMonth();if(m<0||(m===0&&today.getDate()<birth.getDate()))age--;return age}
+function getWeekStart(d){const date=new Date(d);const day=date.getDay();const diff=date.getDate()-day+(day===0?-6:1);return new Date(date.setDate(diff))}
+function getDayOfWeek(d){return (new Date(d).getDay()+6)%7}
+function calculateVolume(exercises){return exercises.reduce((sum,e)=>sum+(e.weight*e.sets*e.reps),0)}
+
+// ==================== NAVIGATION ====================
+function switchPage(page){
+document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+document.getElementById('page-'+page).classList.add('active');
+document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+event.currentTarget.classList.add('active');
+if(page==='training')renderTraining();
+if(page==='nutrition')renderNutrition();
+if(page==='recovery')renderRecovery();
+if(page==='progress')renderProgress();
+if(page==='admin')renderAdmin();
+}
+
+function switchAdminTab(tab){
+document.querySelectorAll('.admin-panel').forEach(p=>p.classList.remove('active'));
+document.getElementById('admin-'+tab).classList.add('active');
+document.querySelectorAll('.admin-nav-item').forEach(n=>n.classList.remove('active'));
+event.target.classList.add('active');
+if(tab==='profile')loadProfile();
+if(tab==='sleep')renderAdminSleepHistory();
+if(tab==='bodycomp')renderAdminBodycompHistory();
+if(tab==='training'){renderAdminTrainingTypeSelect();renderAdminTrainingHistory();}
+if(tab==='backup')renderDataOverview();
+}
+
+function setToggle(el){el.parentElement.querySelectorAll('.toggle-item').forEach(t=>t.classList.remove('active'));el.classList.add('active');}
+function closeModal(){document.getElementById('rating-modal').classList.remove('active');}
+function closeTrainingDBModal(){document.getElementById('training-db-modal').classList.remove('active');}
+function closeExerciseDBModal(){document.getElementById('exercise-db-modal').classList.remove('active');}
+function closeCalendarModal(){document.getElementById('calendar-modal').classList.remove('active');}
+
+// ==================== PROFILE & BODY GOAL ====================
+function initTrainingModeDays(){
+const container=document.getElementById('training-mode-days');
+const db=Store.getTrainingDB()||DEFAULT_TRAINING_DB;
+const allTypes=[...db.frequent,...db.more];
+container.innerHTML=DAYS.map((day,i)=>`
+<div class="day-row">
+<div class="day-label">${day}</div>
+<select class="form-select day-select" id="day-${i}">
+${allTypes.map(t=>`<option value="${t.value}">${t.label}</option>`).join('')}
+</select>
+</div>
+`).join('');
+}
+
+function loadProfile(){
+const p=Store.getProfile();
+if(p.name)document.getElementById('p-name').value=p.name;
+if(p.birthday){document.getElementById('p-birthday').value=p.birthday;document.getElementById('p-age-display').textContent=calculateAge(p.birthday)+'岁';}
+if(p.height)document.getElementById('p-height').value=p.height;
+if(p.city)document.getElementById('p-city').value=p.city;
+if(p.cooking)document.getElementById('p-cooking').value=p.cooking;
+if(p.goal)document.getElementById('p-goal').value=p.goal;
+if(p.bodyGoal)document.getElementById('p-body-goal').value=p.bodyGoal;
+if(p.injuries){p.injuries.forEach(inj=>{const cb=document.getElementById('injury-'+inj);if(cb)cb.checked=true;});}
+if(p.schedule){p.schedule.forEach((s,i)=>{const el=document.getElementById('day-'+i);if(el)el.value=s;});}
+if(p.gender){document.querySelectorAll('#admin-profile .toggle-item').forEach(t=>t.classList.toggle('active',t.dataset.value===p.gender));}
+updateBodyGoal();
+}
+
+function updateBodyGoal(){
+const height=parseFloat(document.getElementById('p-height').value)||172.5;
+const gender=document.querySelector('#admin-profile .toggle-item.active')?.dataset.value||'male';
+const goal=document.getElementById('p-body-goal').value||'strong';
+const smi=SMI_TARGETS[goal]||10.5;
+const fatPct=FAT_TARGETS[goal]||12;
+const targetMuscle=(smi*(height/100)*(height/100)).toFixed(1);
+const targetWeight=(targetMuscle/0.466).toFixed(1);
+const targetFat=(targetWeight*fatPct/100).toFixed(1);
+const preview=document.getElementById('body-goal-preview');
+if(preview){
+preview.innerHTML=`基于 ${height}cm / ${gender==='male'?'男性':'女性'}：<br>
+目标骨骼肌：${targetMuscle} kg<br>
+目标体脂率：${fatPct}.0%<br>
+参考体重：${targetWeight} kg<br>
+参考脂肪量：${targetFat} kg`;
+}
+}
+
+function saveProfile(){
+const height=parseFloat(document.getElementById('p-height').value)||172.5;
+const goal=document.getElementById('p-body-goal').value||'strong';
+const smi=SMI_TARGETS[goal]||10.5;
+const fatPct=FAT_TARGETS[goal]||12;
+const profile={
+name:document.getElementById('p-name').value,
+gender:document.querySelector('#admin-profile .toggle-item.active')?.dataset.value||'male',
+birthday:document.getElementById('p-birthday').value,
+height:height,
+city:document.getElementById('p-city').value,
+cooking:document.getElementById('p-cooking').value,
+goal:document.getElementById('p-goal').value,
+bodyGoal:goal,
+bodyGoalTargets:{smi:smi,fatPct:fatPct,muscle:(smi*(height/100)*(height/100)).toFixed(1)},
+injuries:Array.from(document.querySelectorAll('#admin-profile input[type=checkbox]:checked')).map(cb=>cb.value),
+schedule:DAYS.map((_,i)=>document.getElementById('day-'+i).value)
+};
+Store.setProfile(profile);
+showToast('档案已保存');
+}
+
+function getLocation(){
+if(!navigator.geolocation){showToast('浏览器不支持定位','error');return;}
+navigator.geolocation.getCurrentPosition(pos=>{
+const cities=['北京','上海','广州','深圳','成都','杭州','武汉','西安'];
+const random=cities[Math.floor(Math.random()*cities.length)];
+document.getElementById('p-city').value=random;
+showToast('定位成功：'+random);
+},()=>showToast('定位失败，请手动输入','error'));
+}
+
+// ==================== TYPE LABEL HELPER ====================
+function getTypeLabel(typeValue){
+const db=Store.getTrainingDB()||DEFAULT_TRAINING_DB;
+const allTypes=[...db.frequent,...db.more];
+const found=allTypes.find(t=>t.value===typeValue);
+if(found)return found.label;
+const fallback={'func-push':'功能性力量训练 - 上肢推','func-pull':'功能性力量训练 - 上肢拉','func-legs':'功能性力量训练 - 下肢','func-full':'功能性力量训练 - 全身','hiit':'高强度间歇训练','cardio':'低强度有氧','core':'核心训练','yoga':'瑜伽/拉伸','outdoor':'户外活动','rest':'休息/恢复','run-outdoor':'跑步（户外）','run-indoor':'跑步（室内）','walk':'步行','cycle':'骑行','swim':'游泳','box':'拳击','climb':'攀岩','hike':'徒步','dance':'舞蹈','ski':'滑雪','skate':'滑冰','ball-basket':'篮球','ball-tennis':'网球','ball-soccer':'足球','golf':'高尔夫','pilates':'普拉提','taiji':'太极','meditation':'冥想（正念）','other':'其他'};
+return fallback[typeValue]||typeValue;
+}
+
+function getShortTypeLabel(typeValue){
+const full=getTypeLabel(typeValue);
+return full.split(' - ')[0];
+}
+function getFullTypeLabel(typeValue){
+return getTypeLabel(typeValue);
+}
+
+// ==================== AI ENGINE ====================
+const AIEngine={
+generateTrainingAdvice(){
+const sleep=Store.get('sleep');
+const training=Store.get('training');
+const calendar=Store.getCalendar();
+const profile=Store.getProfile();
+const today=formatDate(new Date());
+const yesterdaySleep=sleep.find(s=>s.date===formatDate(offsetDate(new Date(),-1)));
+const lastSleep=yesterdaySleep||sleep[0];
+const todayPlan=calendar[today];
+const recentTraining=training.slice(-10).reverse();
+const lastTraining=recentTraining[0];
+
+let recoveryScore=50;
+if(lastSleep){
+recoveryScore+=(lastSleep.duration-7)*10;
+recoveryScore+=(lastSleep.quality-3)*10;
+recoveryScore-=(lastSleep.fatigue-5)*5;
+if(lastSleep.deep)recoveryScore+=(lastSleep.deep/lastSleep.duration*100-15)*2;
+}
+recoveryScore=Math.max(0,Math.min(100,recoveryScore));
+
+let advice='',type='neutral',plan=null;
+if(recoveryScore<40||(lastSleep&&lastSleep.duration<6)){
+advice='您的<span class="warning">恢复状态不佳</span>（昨晚睡眠 '+(lastSleep?lastSleep.duration+'h':'未知')+'）。建议<span class="warning">今日休息</span>或进行轻度主动恢复，如 20-30 分钟散步或拉伸。';
+type='negative';
+plan={action:'rest'};
+}else if(recoveryScore<60){
+advice='您的<span class="neutral">恢复状态一般</span>。建议进行<span class="neutral">减量训练</span>，降低容量约 20%，避免冲击大重量。';
+type='neutral';
+plan={action:'deload'};
+}else{
+let nextType=todayPlan?.type||'func-push';
+if(nextType==='rest'){nextType='func-push';}
+const sameTypeHistory=training.filter(t=>t.type===nextType).slice(-3);
+let weightAdvice='';
+if(sameTypeHistory.length>0){
+const lastSame=sameTypeHistory[sameTypeHistory.length-1];
+const mainEx=lastSame.exercises[0];
+if(mainEx){
+const suggestedWeight=(mainEx.weight*1.025).toFixed(1);
+weightAdvice=`建议主项 ${mainEx.name} 从 ${mainEx.weight}kg 尝试 ${suggestedWeight}kg，保持相似组次数。`;
+}
+}
+let injuryWarning='';
+if(profile.injuries&&profile.injuries.includes('shoulder')&&(nextType==='func-push'||muscleType==='push')){
+injuryWarning='<br><br><span class="warning">⚠️ 注意：右肩伤病史，卧推注意控制幅度，避免过度外展</span>';
+}
+const fullTypeLabel=getFullTypeLabel(nextType);
+advice='您的<span class="highlight">恢复状态良好</span>！建议今日进行<span class="highlight">'+fullTypeLabel+'</span>。'+weightAdvice+injuryWarning;
+type='positive';
+plan={action:'train',type:nextType};
+}
+return{advice,recoveryScore,plan,lastSleep,todayPlan};
+},
+
+generateNutritionAdvice(){
+const profile=Store.getProfile();
+const bodycomp=Store.get('bodycomp');
+const calendar=Store.getCalendar();
+const today=formatDate(new Date());
+const todayPlan=calendar[today];
+const latest=bodycomp[bodycomp.length-1]||{weight:75,bmr:1700};
+const isTrainingDay=todayPlan&&todayPlan.type!=='rest';
+const isStrength=todayPlan&&['func-push','func-pull','func-legs','func-full'].includes(todayPlan.type);
+const isHIIT=todayPlan&&todayPlan.type==='hiit';
+
+const activityMult=isTrainingDay?1.6:1.4;
+const tdee=Math.round(latest.bmr*activityMult);
+let targetCal,protein,carbs,fats,fiber;
+
+if(profile.goal==='muscle'){
+targetCal=tdee+(isTrainingDay?200:0);
+protein=Math.round(latest.weight*2.0);
+carbs=Math.round(latest.weight*(isTrainingDay?4.5:3.5));
+fats=Math.round((targetCal-protein*4-carbs*4)/9);
+}else if(profile.goal==='fatloss'){
+targetCal=tdee-(isTrainingDay?200:400);
+protein=Math.round(latest.weight*2.2);
+carbs=Math.round(latest.weight*(isTrainingDay?3:2.5));
+fats=Math.max(50,Math.round((targetCal-protein*4-carbs*4)/9));
+}else{
+targetCal=tdee;
+protein=Math.round(latest.weight*1.8);
+carbs=Math.round(latest.weight*4);
+fats=Math.round((targetCal-protein*4-carbs*4)/9);
+}
+fiber=Math.round(targetCal/1000*14);
+
+const meals=this.generateMeals(profile,todayPlan,protein,carbs,fats);
+const supplements=[];
+supplements.push({name:'乳清蛋白粉',dose:'训练后 25-30g',reason:'补充蛋白质缺口'});
+if(profile.goal==='muscle')supplements.push({name:'肌酸',dose:'每日 5g',reason:'提升训练表现'});
+if(!isTrainingDay)supplements.push({name:'鱼油',dose:'每日 2-3g',reason:'抗炎与恢复'});
+if(isHIIT)supplements.push({name:'电解质',dose:'训练中补充',reason:'高强度出汗'});
+
+return{targetCal,protein,carbs,fats,fiber,meals,supplements,isTrainingDay,todayPlan};
+},
+
+generateMeals(profile,todayPlan,protein,carbs,fats){
+const cooking=profile.cooking||'partial';
+const isTrainingDay=todayPlan&&todayPlan.type!=='rest';
+const trainTime=todayPlan?.time||'14:00';
+const pPerMeal=Math.round(protein/4);
+const cPerMeal=Math.round(carbs/4);
+const fPerMeal=Math.round(fats/4);
+const meals=[];
+
+if(isTrainingDay){
+const preTime=parseInt(trainTime.split(':')[0])-2;
+meals.push({name:`早餐 (训练前 ${preTime}:00)`,time:`${preTime}:00`,items:cooking==='none'?'便利店全麦三明治 + 豆浆 + 鸡蛋':'燕麦 80g + 鸡蛋 3个 + 牛奶 250ml + 香蕉',p:Math.round(pPerMeal*0.8),c:Math.round(cPerMeal*0.9),f:Math.round(fPerMeal*0.7)});
+meals.push({name:'训练后餐 (30min内)',time:'训练后',items:'蛋白粉 1勺 + 白面包/香蕉 + 葡萄糖',p:25,c:40,f:2});
+meals.push({name:'午餐',time:'12:30',items:cooking==='none'?'赛百味/轻食店：鸡胸肉三明治':'鸡胸肉 200g + 米饭 200g + 蔬菜',p:Math.round(pPerMeal*1.2),c:Math.round(cPerMeal*1.1),f:Math.round(fPerMeal*0.8)});
+meals.push({name:'加餐',time:'16:00',items:'希腊酸奶 200g + 坚果 15g',p:15,c:15,f:10});
+meals.push({name:'晚餐',time:'19:00',items:cooking==='none'?'沙县小吃：鸡腿饭（少饭多菜）':'牛肉/鱼肉 150g + 红薯 200g + 大量蔬菜',p:Math.round(pPerMeal*0.9),c:Math.round(cPerMeal*0.7),f:Math.round(fPerMeal*1.3)});
+}else{
+meals.push({name:'早餐',time:'08:00',items:cooking==='none'?'便利店：茶叶蛋 2个 + 无糖豆浆 + 菜包':'鸡蛋 3个 + 牛油果 半个 + 全麦面包',p:Math.round(pPerMeal),c:Math.round(cPerMeal*0.6),f:Math.round(fPerMeal*1.2)});
+meals.push({name:'午餐',time:'12:30',items:cooking==='none'?'轻食店：鸡胸肉沙拉（油醋汁）':'鸡胸肉/鱼肉 200g + 少量米饭 + 大量蔬菜',p:Math.round(pPerMeal*1.2),c:Math.round(cPerMeal*0.8),f:Math.round(fPerMeal*0.8)});
+meals.push({name:'加餐',time:'15:30',items:'蛋白粉 1勺 或 鸡胸肉 100g',p:25,c:5,f:2});
+meals.push({name:'晚餐',time:'19:00',items:cooking==='none'?'麻辣烫：多选瘦肉/豆腐/蔬菜，少丸子':'瘦牛肉/虾 150g + 蔬菜沙拉',p:Math.round(pPerMeal),c:Math.round(cPerMeal*0.5),f:Math.round(fPerMeal)});
+}
+return meals;
+},
+
+calculateRecoveryScore(sleepEntry){
+if(!sleepEntry)return null;
+let score=50;
+score+=(sleepEntry.duration-7)*10;
+score+=(sleepEntry.quality-3)*10;
+score-=(sleepEntry.fatigue-5)*5;
+if(sleepEntry.deep)score+=(sleepEntry.deep/sleepEntry.duration*100-15)*2;
+return Math.max(0,Math.min(100,Math.round(score)));
+},
+
+generateFullWorkoutPlan(trainingType){
+const db=Store.getExerciseDB()||DEFAULT_EXERCISE_DB;
+const training=Store.get('training');
+const profile=Store.getProfile();
+
+// 训练类型 → 动作部位映射
+const typeToMuscleMap={
+'func-push':['胸','肩','手臂'],
+'func-pull':['背','手臂'],
+'func-legs':['腿前','腿后'],
+'func-full':['胸','背','腿前','核心'],
+'core':['核心'],
+'hiit':['腿前','核心','胸'],
+'cardio':['腿前','腿后'],
+'outdoor':['腿前','腿后'],
+'rest':[],
+'yoga':['核心']
+};
+
+const muscleGroups=typeToMuscleMap[trainingType]||['胸'];
+
+// 动作模板（部位 → 推荐动作列表）
+const muscleToExercises={
+'胸':['杠铃平板卧推','哑铃平板卧推','哑铃斜上卧推','器械坐姿推胸','绳索夹胸'],
+'背':['自重引体向上','杠铃俯身划船','哑铃单臂划船','高位下拉','直臂下压'],
+'肩':['杠铃站姿推举','哑铃坐姿推举','哑铃侧平举','哑铃前平举','绳索反向飞鸟'],
+'手臂':['杠铃二头弯举','哑铃锤式弯举','绳索三头下压','仰卧臂屈伸'],
+'腿前':['杠铃深蹲','杠铃前蹲','器械腿举','器械腿屈伸','泽奇深蹲'],
+'腿后':['杠铃罗马尼亚硬拉','哑铃单腿硬拉','器械腿弯举','臀桥','山羊挺身'],
+'核心':['平板支撑','悬垂举腿','绳索卷腹','俄罗斯转体','死虫']
+};
+
+// 训练计划模板
+const planTemplates={
+'func-push':[
+{muscle:'胸',exercise:null,sets:5,reps:5,rest:180,isMain:true},
+{muscle:'肩',exercise:null,sets:4,reps:10,rest:120,isMain:true},
+{muscle:'胸',exercise:null,sets:4,reps:12,rest:90,isMain:false},
+{muscle:'手臂',exercise:null,sets:4,reps:12,rest:90,isMain:false},
+{muscle:'肩',exercise:null,sets:3,reps:15,rest:60,isMain:false}
+],
+'func-pull':[
+{muscle:'背',exercise:null,sets:4,reps:8,rest:180,isMain:true},
+{muscle:'背',exercise:null,sets:4,reps:10,rest:120,isMain:true},
+{muscle:'背',exercise:null,sets:4,reps:15,rest:90,isMain:false},
+{muscle:'手臂',exercise:null,sets:3,reps:12,rest:90,isMain:false},
+{muscle:'肩',exercise:null,sets:3,reps:15,rest:60,isMain:false}
+],
+'func-legs':[
+{muscle:'腿前',exercise:null,sets:5,reps:5,rest:240,isMain:true},
+{muscle:'腿后',exercise:null,sets:4,reps:8,rest:180,isMain:true},
+{muscle:'腿前',exercise:null,sets:4,reps:12,rest:120,isMain:false},
+{muscle:'腿后',exercise:null,sets:3,reps:15,rest:90,isMain:false},
+{muscle:'腿前',exercise:null,sets:3,reps:12,rest:90,isMain:false}
+],
+'func-full':[
+{muscle:'腿前',exercise:null,sets:4,reps:5,rest:180,isMain:true},
+{muscle:'胸',exercise:null,sets:4,reps:5,rest:180,isMain:true},
+{muscle:'背',exercise:null,sets:3,reps:10,rest:120,isMain:false},
+{muscle:'肩',exercise:null,sets:3,reps:10,rest:120,isMain:false},
+{muscle:'核心',exercise:null,sets:3,reps:15,rest:60,isMain:false}
+],
+'core':[
+{muscle:'核心',exercise:null,sets:4,reps:30,rest:60,isMain:true},
+{muscle:'核心',exercise:null,sets:4,reps:20,rest:60,isMain:true},
+{muscle:'核心',exercise:null,sets:3,reps:15,rest:45,isMain:false},
+{muscle:'核心',exercise:null,sets:3,reps:20,rest:45,isMain:false}
+],
+'hiit':[
+{muscle:'腿前',exercise:null,sets:8,reps:30,rest:30,isMain:true},
+{muscle:'核心',exercise:null,sets:4,reps:20,rest:20,isMain:false},
+{muscle:'胸',exercise:null,sets:4,reps:15,rest:30,isMain:false}
+]
+};
+
+const template=planTemplates[trainingType]||planTemplates['func-push'];
+const plan=[];
+let totalTime=0;
+
+// 为每个模板位置选择具体动作
+for(const slot of template){
+const availableExercises=muscleToExercises[slot.muscle]||[];
+if(availableExercises.length===0)continue;
+
+// 选择动作：优先选有历史记录的，否则随机
+let selectedEx=availableExercises[0];
+let lastRecord=null;
+for(const exName of availableExercises){
+const history=training.slice().reverse().find(t=>t.exercises.some(e=>e.name===exName));
+if(history){
+const exData=history.exercises.find(e=>e.name===exName);
+if(!lastRecord||history.date>lastRecord.date){
+lastRecord={name:exName,weight:exData.weight,sets:exData.sets,reps:exData.reps,rpe:exData.rpe||7,date:history.date};
+selectedEx=exName;
+}
+}
+}
+
+// 计算推荐重量
+let suggestedWeight=0;
+if(lastRecord){
+if(lastRecord.rpe<=6)suggestedWeight=lastRecord.weight+2.5;
+else if(lastRecord.rpe<=8)suggestedWeight=lastRecord.weight;
+else suggestedWeight=Math.max(20,lastRecord.weight-2.5);
+}else{
+// 首次：基于体重估算
+const weight=profile.weight||75;
+const estimates={'杠铃平板卧推':weight*1.2,'杠铃深蹲':weight*1.5,'杠铃站姿推举':weight*0.6,'自重引体向上':0,'杠铃俯身划船':weight*0.8};
+suggestedWeight=estimates[selectedEx]||weight*0.5;
+}
+
+// 估算时间（含组间休息）
+const setTime=slot.isMain?5:3; // 每组执行时间
+const slotTime=(slot.sets*setTime)+(slot.sets-1)*slot.rest/60+3; // 含休息和准备
+
+plan.push({
+name:selectedEx,
+muscle:slot.muscle,
+sets:slot.sets,
+reps:slot.reps,
+weight:Math.round(suggestedWeight*2)/2, // 四舍五入到0.5
+rest:slot.rest,
+isMain:slot.isMain,
+estimatedTime:Math.round(slotTime),
+lastRecord:lastRecord
+});
+totalTime+=slotTime;
+}
+
+return{plan,totalTime:Math.round(totalTime)};
+}
+};
+
+
+// ==================== RENDER: TRAINING ====================
+function renderTraining(){
+const today=new Date();
+document.getElementById('training-date').textContent=today.toLocaleDateString('zh-CN',{month:'long',day:'numeric',weekday:'long'});
+
+const ai=AIEngine.generateTrainingAdvice();
+const aiCard=document.getElementById('training-advice-card');
+const aiText=document.getElementById('ai-training-text');
+
+if(ai.recoveryScore<40){
+aiCard.className='card ai-card negative';
+aiText.innerHTML='您的<span class="warning">恢复状态不佳</span>。建议<span class="warning">今日休息</span>或进行轻度主动恢复。';
+document.getElementById('full-workout-plan').style.display='none';
+}
+else if(ai.recoveryScore<60){
+aiCard.className='card ai-card neutral';
+aiText.innerHTML='您的<span class="neutral">恢复状态一般</span>。建议进行<span class="neutral">减量训练</span>，降低容量约20%。';
+document.getElementById('full-workout-plan').style.display='none';
+}
+else{
+aiCard.className='card ai-card';
+const calendar=Store.getCalendar();
+const todayKey=formatDate(today);
+const todayPlan=calendar[todayKey];
+const planType=todayPlan?.type||'func-push';
+
+if(planType==='rest'){
+aiText.innerHTML='今日为<span class="highlight">休息日</span>。建议进行轻度活动或完全休息，促进恢复。';
+document.getElementById('full-workout-plan').style.display='none';
+}else{
+const fullTypeLabel=getFullTypeLabel(planType);
+aiText.innerHTML='🟢 <span class="highlight">状态极佳</span>，建议正常执行今日'+fullTypeLabel+'计划。';
+
+// 生成完整训练计划
+const workoutPlan=AIEngine.generateFullWorkoutPlan(planType);
+if(workoutPlan.plan.length>0){
+document.getElementById('full-workout-plan').style.display='block';
+document.getElementById('plan-total-time').textContent=workoutPlan.totalTime;
+
+const planList=document.getElementById('workout-plan-list');
+planList.innerHTML=workoutPlan.plan.map((ex,idx)=>`
+<div style="display:flex;justify-content:space-between;align-items:flex-start;padding:12px 0;border-bottom:1px solid var(--border-color);${idx===0?'border-top:1px solid var(--border-color);':''}">
+<div style="flex:1">
+<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+<span style="font-size:12px;color:var(--text-muted);background:var(--bg-elevated);padding:2px 8px;border-radius:6px">${ex.muscle}</span>
+${ex.isMain?'<span style="font-size:11px;color:var(--accent-green);font-weight:600">主项</span>':''}
+</div>
+<div style="font-size:15px;font-weight:600;color:var(--text-neutral)">${ex.name}</div>
+<div style="font-size:13px;color:var(--text-muted);margin-top:2px">
+${ex.weight>0?ex.weight+'kg × ':''}${ex.sets}组 × ${ex.reps}次
+${ex.rest>0?' · 组间休息'+ex.rest+'秒':''}
+</div>
+${ex.lastRecord?`<div style="font-size:11px;color:var(--text-positive);margin-top:4px">上次：${ex.lastRecord.weight}kg×${ex.lastRecord.sets}×${ex.lastRecord.reps} ${ex.lastRecord.rpe?'RPE'+ex.lastRecord.rpe:''}</div>`:''}
+</div>
+<div style="text-align:right;min-width:50px">
+<div style="font-size:12px;color:var(--text-muted)">~${ex.estimatedTime}min</div>
+</div>
+</div>
+`).join('');
+
+// 保存当前计划到全局变量供"使用此计划"按钮调用
+window.currentWorkoutPlan=workoutPlan.plan;
+window.currentPlanType=planType;
+}
+}
+}
+
+document.getElementById('t-recovery-score').textContent=ai.recoveryScore;
+const recStatus=document.getElementById('t-recovery-status');
+if(ai.recoveryScore>=70){recStatus.textContent='恢复良好';recStatus.className='metric-change positive';document.getElementById('t-recovery-score').className='metric-value positive';}
+else if(ai.recoveryScore>=50){recStatus.textContent='恢复一般';recStatus.className='metric-change neutral';document.getElementById('t-recovery-score').className='metric-value neutral';}
+else{recStatus.textContent='需要休息';recStatus.className='metric-change negative';document.getElementById('t-recovery-score').className='metric-value negative';}
+
+const calendar=Store.getCalendar();
+const todayKey=formatDate(today);
+const todayPlan=calendar[todayKey];
+const planEl=document.getElementById('t-today-plan');
+const timeEl=document.getElementById('t-today-time');
+if(todayPlan){
+const fullLabel=getFullTypeLabel(todayPlan.type);
+planEl.textContent=fullLabel;
+if(todayPlan.type==='rest'){timeEl.textContent='休息日';}
+else{timeEl.textContent=`${todayPlan.time} · ${todayPlan.duration}min`;}
+}else{
+planEl.textContent='未安排';
+timeEl.textContent='请在日历中规划';
+}
+
+renderTrainingCalendar();
+renderRecentTraining();
+}
+
+function renderTrainingCalendar(){
+const calendar=Store.getCalendar();
+const weekStart=getWeekStart(new Date());
+const container=document.getElementById('calendar-list');
+let html='';
+for(let i=0;i<7;i++){
+const date=formatDate(offsetDate(weekStart,i));
+const plan=calendar[date];
+const dayName=DAYS[i];
+const isToday=date===formatDate(new Date());
+const isPast=new Date(date)<new Date(formatDate(new Date()));
+const isDone=plan?.done;
+
+let statusClass='pending';
+let statusText='○ 待执行';
+if(isDone||isPast&&plan&&plan.type!=='rest'){statusClass='done';statusText='✓ 已完成';}
+else if(plan&&plan.type==='rest'){statusClass='rest';statusText='😌 休息';}
+
+const db=Store.getTrainingDB()||DEFAULT_TRAINING_DB;
+const allTypes=[...db.frequent,...db.more];
+const typeLabel=plan?getFullTypeLabel(plan.type):'未安排';
+const timeStr=plan&&plan.type!=='rest'?`${plan.time} · ${plan.duration}min`:'--';
+
+html+=`
+<div class="calendar-day ${isToday?'border:1px solid var(--accent-green)':''}">
+<div class="day-info">
+<div class="day-type">${dayName} ${typeLabel.split(' - ')[0]}</div>
+<div class="day-time">${timeStr} ${isToday?'· 今天':''}</div>
+</div>
+<div class="day-status ${statusClass}">${statusText}</div>
+</div>`;
+}
+container.innerHTML=html;
+}
+
+function renderRecentTraining(){
+const training=Store.get('training');
+const sorted=[...training].sort((a,b)=>new Date(b.date)-new Date(a.date));
+const container=document.getElementById('recent-training-list');
+if(!sorted.length){container.innerHTML='<div class="empty-state"><div class="empty-state-icon">🏋️</div><div class="empty-state-text">暂无训练记录</div></div>';return;}
+container.innerHTML=sorted.slice(0,5).map(t=>{
+const vol=calculateVolume(t.exercises);
+const fullTypeLabel=getFullTypeLabel(t.type);
+return `<div class="card" style="margin-bottom:8px">
+<div class="list-item" style="padding:0 0 8px 0">
+<div class="list-item-left">
+<div class="list-icon">${t.type==='rest'?'😌':'🏋️'}</div>
+<div>
+<div class="list-title">${fullTypeLabel}</div>
+<div class="list-subtitle">${formatDateCN(t.date)} · ${t.duration}min</div>
+</div>
+</div>
+<div class="list-value" style="color:var(--text-neutral)">${vol?(vol/1000).toFixed(1)+'k':'--'}</div>
+</div>
+${t.exercises.length?`<div style="font-size:12px;color:var(--text-muted)">${t.exercises.map(e=>`${e.name} ${e.weight}kg×${e.sets}×${e.reps}`).join(' · ')}</div>`:''}
+</div>`;
+}).join('');
+}
+
+// ==================== RENDER: NUTRITION ====================
+function renderNutrition(){
+document.getElementById('nutrition-date').textContent=new Date().toLocaleDateString('zh-CN',{month:'long',day:'numeric',weekday:'long'});
+
+const advice=AIEngine.generateNutritionAdvice();
+const profile=Store.getProfile();
+const bodycomp=Store.get('bodycomp');
+const latest=bodycomp[bodycomp.length-1]||{weight:75};
+
+const badge=document.getElementById('nutrition-status-badge');
+const statusText=document.getElementById('nutrition-status-text');
+if(advice.isTrainingDay){
+const plan=advice.todayPlan;
+const fullTypeLabel=plan?getFullTypeLabel(plan.type):'训练';
+badge.textContent=fullTypeLabel;
+badge.className='card-badge badge-green';
+statusText.innerHTML=`依据：昨日睡眠7.8h · 恢复82分 · 今日计划${typeLabel}${plan?plan.time:''}`;
+}else{
+badge.textContent='休息日';
+badge.className='card-badge badge-gray';
+statusText.innerHTML='依据：今日无训练计划 · 恢复优先';
+}
+
+let adviceText='';
+if(advice.isTrainingDay){
+const plan=advice.todayPlan;
+const trainTime=plan?plan.time:'14:00';
+const preTime=parseInt(trainTime.split(':')[0])-2;
+const fullTypeLabel=plan?getFullTypeLabel(plan.type):'训练';
+adviceText=`今日为<span class="highlight">${fullTypeLabel}</span>，目标${profile.goal==='muscle'?'增肌期':profile.goal==='fatloss'?'减脂期':'维持期'}。<br>
+总热量目标 <span class="highlight">${advice.targetCal} kcal</span>（${advice.isTrainingDay?'+200训练盈余':'维持'}）<br><br>
+💡 昨晚恢复良好，建议今日充足碳水支持${trainTime}的${fullTypeLabel}训练`;
+}else{
+adviceText=`今日为<span class="neutral">休息日</span>，适当降低碳水、提高健康脂肪比例，促进恢复。<br>
+总热量目标 <span class="highlight">${advice.targetCal} kcal</span>。<br><br>
+💡 休息日也是肌肉生长黄金期，蛋白质维持供给`;
+}
+document.getElementById('ai-nutrition-text').innerHTML=adviceText;
+
+const macroContainer=document.getElementById('macro-targets');
+const macros=[
+{name:'蛋白质',value:advice.protein,unit:'g',color:'positive'},
+{name:'碳水',value:advice.carbs,unit:'g',color:'neutral'},
+{name:'脂肪',value:advice.fats,unit:'g',color:'neutral'},
+{name:'膳食纤维',value:advice.fiber,unit:'g',color:'positive'}
+];
+macroContainer.innerHTML=macros.map(m=>`
+<div style="margin-bottom:14px">
+<div style="display:flex;justify-content:space-between;margin-bottom:6px">
+<span style="font-size:13px;color:var(--text-muted)">${m.name}</span>
+<span style="font-size:13px;font-weight:600;color:var(--text-${m.color})">${m.value}${m.unit}</span>
+</div>
+<div class="progress-bar-bg"><div class="progress-bar-fill ${m.color}" style="width:100%"></div></div>
+</div>
+`).join('');
+
+const mealContainer=document.getElementById('meal-plan');
+mealContainer.innerHTML=advice.meals.map(meal=>`
+<div class="meal-card">
+<div class="meal-header">
+<div>
+<div class="meal-name">${meal.name}</div>
+<div class="meal-time">⏰ ${meal.time}</div>
+</div>
+</div>
+<div class="meal-items">${meal.items}</div>
+<div class="meal-macro">
+<span class="macro-tag" style="color:var(--text-positive)">🥩 ${meal.p}g 蛋白</span>
+<span class="macro-tag" style="color:var(--text-neutral)">🍚 ${meal.c}g 碳水</span>
+<span class="macro-tag" style="color:var(--text-neutral)">🥑 ${meal.f}g 脂肪</span>
+</div>
+</div>
+`).join('');
+
+document.getElementById('supplement-list').innerHTML=advice.supplements.map(s=>`
+<div class="list-item">
+<div class="list-item-left">
+<div class="list-icon" style="background:rgba(59,130,246,0.15)">💊</div>
+<div>
+<div class="list-title">${s.name}</div>
+<div class="list-subtitle">${s.reason}</div>
+</div>
+</div>
+<div class="list-value" style="color:var(--accent-blue);font-size:12px">${s.dose}</div>
+</div>
+`).join('');
+}
+
+function refreshNutrition(){renderNutrition();showToast('已刷新餐食推荐');}
+
+// ==================== RENDER: RECOVERY ====================
+let recoveryChartInstance=null;
+let sleepChartInstance=null;
+let loadRecoveryChartInstance=null;
+
+function renderRecovery(){
+const sleep=Store.get('sleep');
+const sorted=[...sleep].sort((a,b)=>new Date(b.date)-new Date(a.date));
+
+const latest=sorted[0];
+const score=latest?AIEngine.calculateRecoveryScore(latest):null;
+const scoreEl=document.getElementById('recovery-score');
+const statusEl=document.getElementById('recovery-status');
+
+if(score!==null){
+scoreEl.textContent=score;
+if(score>=70){scoreEl.className='metric-value positive';statusEl.className='metric-change positive';statusEl.textContent='恢复良好';}
+else if(score>=50){scoreEl.className='metric-value neutral';statusEl.className='metric-change neutral';statusEl.textContent='恢复一般';}
+else{scoreEl.className='metric-value negative';statusEl.className='metric-change negative';statusEl.textContent='需要休息';}
+}else{
+scoreEl.textContent='--';
+statusEl.textContent='暂无数据';
+}
+
+const last7=sorted.slice(0,7);
+const avgDuration=last7.length>0?(last7.reduce((s,x)=>s+x.duration,0)/last7.length).toFixed(1):'--';
+const avgEl=document.getElementById('avg-sleep');
+const avgStatus=document.getElementById('avg-sleep-status');
+avgEl.textContent=avgDuration+'h';
+if(avgDuration!=='--'){
+const avg=parseFloat(avgDuration);
+if(avg>=7.5){avgEl.className='metric-value positive';avgStatus.className='metric-change positive';avgStatus.textContent='睡眠充足';}
+else if(avg>=6.5){avgEl.className='metric-value neutral';avgStatus.className='metric-change neutral';avgStatus.textContent='睡眠尚可';}
+else{avgEl.className='metric-value negative';avgStatus.className='metric-change negative';avgStatus.textContent='睡眠不足';}
+}
+
+// Recovery chart
+const chartData=sorted.slice(0,7).reverse();
+const rCtx=document.getElementById('recoveryChart').getContext('2d');
+if(recoveryChartInstance)recoveryChartInstance.destroy();
+recoveryChartInstance=new Chart(rCtx,{
+type:'line',
+data:{
+labels:chartData.map(d=>formatDateCN(d.date)),
+datasets:[{
+label:'恢复指数',
+data:chartData.map(d=>AIEngine.calculateRecoveryScore(d)),
+borderColor:'#22c55e',
+backgroundColor:'rgba(34,197,94,0.1)',
+fill:true,
+tension:0.4,
+pointRadius:4,
+pointBackgroundColor:'#22c55e'
+}]
+},
+options:{
+responsive:true,
+maintainAspectRatio:false,
+plugins:{legend:{display:false}},
+scales:{
+y:{beginAtZero:false,min:30,max:100,grid:{color:'rgba(255,255,255,0.05)'},ticks:{color:'#737373',font:{size:11}}},
+x:{grid:{display:false},ticks:{color:'#737373',font:{size:11}}}
+}
+}
+});
+
+// Sleep chart
+const sCtx=document.getElementById('sleepChart').getContext('2d');
+if(sleepChartInstance)sleepChartInstance.destroy();
+sleepChartInstance=new Chart(sCtx,{
+type:'bar',
+data:{
+labels:chartData.map(d=>formatDateCN(d.date)),
+datasets:[{
+label:'睡眠时长(h)',
+data:chartData.map(d=>d.duration),
+backgroundColor:chartData.map(d=>d.duration>=7?'rgba(34,197,94,0.6)':d.duration>=6?'rgba(229,229,229,0.4)':'rgba(107,114,128,0.5)'),
+borderRadius:6,
+borderSkipped:false
+}]
+},
+options:{
+responsive:true,
+maintainAspectRatio:false,
+plugins:{legend:{display:false}},
+scales:{
+y:{beginAtZero:false,min:4,max:10,grid:{color:'rgba(255,255,255,0.05)'},ticks:{color:'#737373',font:{size:11}}},
+x:{grid:{display:false},ticks:{color:'#737373',font:{size:11}}}
+}
+}
+});
+
+// Load vs Recovery chart
+const training=Store.get('training');
+const last7Training=training.filter(t=>t.date>=formatDate(offsetDate(new Date(),-7))).sort((a,b)=>new Date(a.date)-new Date(b.date));
+const lrCtx=document.getElementById('loadRecoveryChart').getContext('2d');
+if(loadRecoveryChartInstance)loadRecoveryChartInstance.destroy();
+
+const lrLabels=[];
+const lrVolume=[];
+const lrRecovery=[];
+for(let i=6;i>=0;i--){
+const d=formatDate(offsetDate(new Date(),-i));
+lrLabels.push(formatDateCN(d));
+const t=training.find(x=>x.date===d);
+lrVolume.push(t?calculateVolume(t.exercises)/1000:0);
+const s=sleep.find(x=>x.date===d);
+lrRecovery.push(s?AIEngine.calculateRecoveryScore(s):50);
+}
+
+loadRecoveryChartInstance=new Chart(lrCtx,{
+type:'line',
+data:{
+labels:lrLabels,
+datasets:[
+{
+label:'容量(k)',
+data:lrVolume,
+borderColor:'#3b82f6',
+backgroundColor:'transparent',
+tension:0.4,
+pointRadius:3,
+yAxisID:'y'
+},
+{
+label:'恢复指数',
+data:lrRecovery,
+borderColor:'#22c55e',
+backgroundColor:'transparent',
+tension:0.4,
+pointRadius:3,
+yAxisID:'y1'
+}
+]
+},
+options:{
+responsive:true,
+maintainAspectRatio:false,
+plugins:{legend:{labels:{color:'#e5e5e5',font:{size:11}}}},
+scales:{
+y:{beginAtZero:false,min:0,max:30,position:'left',grid:{color:'rgba(255,255,255,0.05)'},ticks:{color:'#737373',font:{size:11}}},
+y1:{beginAtZero:false,min:30,max:100,position:'right',grid:{display:false},ticks:{color:'#22c55e',font:{size:11}}},
+x:{grid:{display:false},ticks:{color:'#737373',font:{size:11}}}
+}
+}
+});
+
+// Sleep entries
+const entriesContainer=document.getElementById('sleep-entries');
+entriesContainer.innerHTML=sorted.slice(0,7).map(s=>{
+const score=AIEngine.calculateRecoveryScore(s);
+const scoreColor=score>=70?'positive':score>=50?'neutral':'negative';
+const stars='★'.repeat(s.quality)+'☆'.repeat(5-s.quality);
+return `
+<div class="card" style="margin-bottom:8px">
+<div class="list-item" style="padding:0">
+<div class="list-item-left">
+<div class="list-icon" style="background:${score>=70?'rgba(34,197,94,0.15)':score>=50?'rgba(229,229,229,0.1)':'rgba(107,114,128,0.15)'}">${score>=70?'😊':score>=50?'😐':'😴'}</div>
+<div>
+<div class="list-title">${formatDateCN(s.date)}</div>
+<div class="list-subtitle">${s.duration}h · 评分${s.score||'--'} · 疲劳${s.fatigue}</div>
+</div>
+</div>
+<div style="text-align:right">
+<div class="list-value" style="color:var(--text-${scoreColor})">${s.duration}h</div>
+<div style="font-size:11px;color:var(--text-muted)">恢复 ${score}</div>
+</div>
+</div>
+</div>`;
+}).join('');
+}
+
+function switchRecoveryChart(el,days){
+el.parentElement.querySelectorAll('.toggle-item').forEach(t=>t.classList.remove('active'));
+el.classList.add('active');
+// In real version, would re-render chart with different data range
+showToast(days+'日视图');
+}
+
+
+// ==================== RENDER: PROGRESS ====================
+let weightChartInstance=null;
+let compositionChartInstance=null;
+let bodyfatChartInstance=null;
+
+function renderProgress(){
+const bodycomp=Store.get('bodycomp');
+const sorted=[...bodycomp].sort((a,b)=>new Date(a.date)-new Date(a.date));
+const last8=sorted.slice(-8);
+
+const latest=sorted[sorted.length-1];
+const container=document.getElementById('latest-body-comp');
+
+if(!latest){
+container.innerHTML='<div class="empty-state"><div class="empty-state-icon">📊</div><div class="empty-state-text">暂无体测数据<br>请在 Data Admin 中录入</div></div>';
+}else{
+const prev=sorted.length>1?sorted[sorted.length-2]:null;
+const profile=Store.getProfile();
+const height=profile.height||172.5;
+const goal=profile.bodyGoal||'strong';
+const smi=SMI_TARGETS[goal]||10.5;
+const fatPctTarget=FAT_TARGETS[goal]||12;
+const targetMuscle=(smi*(height/100)*(height/100)).toFixed(1);
+const targetWeight=(targetMuscle/0.466).toFixed(1);
+const targetFat=(targetWeight*fatPctTarget/100).toFixed(1);
+
+const muscleDiff=(latest.muscle-targetMuscle).toFixed(1);
+const fatDiff=(latest.fatMass-targetFat).toFixed(1);
+const fatPctDiff=(latest.fatPct-fatPctTarget).toFixed(1);
+
+const weightChange=prev?(latest.weight-prev.weight).toFixed(1):null;
+const muscleChange=prev?(latest.muscle-prev.muscle).toFixed(1):null;
+const fatChange=prev?(latest.fatMass-prev.fatMass).toFixed(1):null;
+const fatPctChange=prev?(latest.fatPct-prev.fatPct).toFixed(1):null;
+
+const muscleProgress=Math.min(100,Math.max(0,(latest.muscle/targetMuscle*100).toFixed(0)));
+const fatPctProgress=Math.min(100,Math.max(0,((fatPctTarget/latest.fatPct)*100).toFixed(0)));
+
+container.innerHTML=`
+<div class="card-header" style="margin-bottom:16px">
+<div class="card-title">最新体测 · ${formatDateCN(latest.date)}</div>
+<div class="card-badge badge-green">${goal==='healthy'?'健康均衡':goal==='fit'?'精壮有型':goal==='strong'?'强壮有力':'健美体格'}</div>
+</div>
+<div class="metrics-grid" style="margin:0;gap:10px">
+<div class="metric-box" style="padding:12px">
+<div class="metric-label">体重</div>
+<div class="metric-value neutral">${latest.weight}kg</div>
+${weightChange!==null?`<div class="metric-change ${weightChange<=0?'positive':'neutral'}">${weightChange>0?'+':''}${weightChange}kg</div>`:''}
+<div style="font-size:11px;color:var(--text-muted);margin-top:4px">参考 ${targetWeight}kg</div>
+</div>
+<div class="metric-box" style="padding:12px">
+<div class="metric-label">骨骼肌</div>
+<div class="metric-value positive">${latest.muscle}kg</div>
+${muscleChange!==null?`<div class="metric-change ${muscleChange>=0?'positive':'negative'}">${muscleChange>0?'+':''}${muscleChange}kg</div>`:''}
+<div style="font-size:11px;color:var(--text-positive);margin-top:4px">距目标 ${muscleDiff>0?'+':''}${muscleDiff}kg</div>
+</div>
+<div class="metric-box" style="padding:12px">
+<div class="metric-label">脂肪量</div>
+<div class="metric-value negative">${latest.fatMass}kg</div>
+${fatChange!==null?`<div class="metric-change ${fatChange<=0?'positive':'negative'}">${fatChange>0?'+':''}${fatChange}kg</div>`:''}
+<div style="font-size:11px;color:var(--text-negative);margin-top:4px">距参考 ${fatDiff>0?'+':''}${fatDiff}kg</div>
+</div>
+<div class="metric-box" style="padding:12px">
+<div class="metric-label">体脂率</div>
+<div class="metric-value negative">${latest.fatPct}%</div>
+${fatPctChange!==null?`<div class="metric-change ${fatPctChange<=0?'positive':'negative'}">${fatPctChange>0?'+':''}${fatPctChange}%</div>`:''}
+<div style="font-size:11px;color:var(--text-negative);margin-top:4px">距目标 ${fatPctDiff>0?'+':''}${fatPctDiff}%</div>
+</div>
+</div>
+<div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border-color);display:flex;justify-content:space-between;font-size:12px;color:var(--text-muted)">
+<span>去脂体重 ${latest.leanMass}kg</span>
+<span>BMR ${latest.bmr}kcal</span>
+<span>BMI ${latest.bmi}</span>
+</div>
+`;
+
+// Goal progress
+const progressHTML=`
+<div class="card">
+<div class="card-title" style="margin-bottom:16px">目标进度</div>
+<div style="margin-bottom:14px">
+<div style="display:flex;justify-content:space-between;margin-bottom:6px">
+<span style="font-size:13px">骨骼肌 ${latest.muscle}kg → ${targetMuscle}kg</span>
+<span style="font-size:13px;color:var(--text-positive);font-weight:600">${muscleProgress}%</span>
+</div>
+<div class="progress-bar-bg"><div class="progress-bar-fill positive" style="width:${muscleProgress}%"></div></div>
+</div>
+<div style="margin-bottom:14px">
+<div style="display:flex;justify-content:space-between;margin-bottom:6px">
+<span style="font-size:13px">体脂率 ${latest.fatPct}% → ${fatPctTarget}%</span>
+<span style="font-size:13px;color:var(--text-negative);font-weight:600">${fatPctProgress}%</span>
+</div>
+<div class="progress-bar-bg"><div class="progress-bar-fill negative" style="width:${fatPctProgress}%"></div></div>
+</div>
+<div>
+<div style="display:flex;justify-content:space-between;margin-bottom:6px">
+<span style="font-size:13px">当前体型：${goal==='healthy'?'健康均衡':goal==='fit'?'精壮有型':goal==='strong'?'强壮有力':'健美体格'} → ${goal==='bodybuilder'?'已达目标':goal==='strong'?'健美体格':'强壮有力'}</span>
+<span style="font-size:13px;color:var(--text-neutral);font-weight:600">进行中</span>
+</div>
+</div>
+</div>`;
+
+// Insert progress card after latest bodycomp
+const nextEl=container.nextElementSibling;
+if(nextEl&&nextEl.querySelector('.card-title')?.textContent==='目标进度'){
+nextEl.outerHTML=progressHTML;
+}else{
+container.insertAdjacentHTML('afterend',progressHTML);
+}
+}
+
+// Charts with last 8 data points
+const labels=last8.map(d=>formatDateCN(d.date));
+
+const wCtx=document.getElementById('weightChart').getContext('2d');
+if(weightChartInstance)weightChartInstance.destroy();
+const wMin=Math.min(...last8.map(d=>d.weight))-1;
+const wMax=Math.max(...last8.map(d=>d.weight))+1;
+weightChartInstance=new Chart(wCtx,{
+type:'line',
+data:{
+labels:labels,
+datasets:[{
+label:'体重 (kg)',
+data:last8.map(d=>d.weight),
+borderColor:'#22c55e',
+backgroundColor:'rgba(34,197,94,0.1)',
+fill:true,
+tension:0.4,
+pointRadius:4,
+pointBackgroundColor:'#22c55e'
+}]
+},
+options:{
+responsive:true,
+maintainAspectRatio:false,
+plugins:{legend:{display:false}},
+scales:{
+y:{beginAtZero:false,min:wMin,max:wMax,grid:{color:'rgba(255,255,255,0.05)'},ticks:{color:'#737373',font:{size:11}}},
+x:{grid:{display:false},ticks:{color:'#737373',font:{size:11}}}
+}
+}
+});
+
+const cCtx=document.getElementById('compositionChart').getContext('2d');
+if(compositionChartInstance)compositionChartInstance.destroy();
+const mMin=Math.min(...last8.map(d=>d.muscle))-0.5;
+const mMax=Math.max(...last8.map(d=>d.muscle))+0.5;
+const fMin=Math.min(...last8.map(d=>d.fatMass))-0.5;
+const fMax=Math.max(...last8.map(d=>d.fatMass))+0.5;
+compositionChartInstance=new Chart(cCtx,{
+type:'line',
+data:{
+labels:labels,
+datasets:[
+{
+label:'骨骼肌 (kg)',
+data:last8.map(d=>d.muscle),
+borderColor:'#22c55e',
+backgroundColor:'transparent',
+tension:0.4,
+pointRadius:3,
+yAxisID:'y'
+},
+{
+label:'脂肪 (kg)',
+data:last8.map(d=>d.fatMass),
+borderColor:'#6b7280',
+backgroundColor:'transparent',
+tension:0.4,
+pointRadius:3,
+yAxisID:'y1'
+}
+]
+},
+options:{
+responsive:true,
+maintainAspectRatio:false,
+plugins:{legend:{labels:{color:'#e5e5e5',font:{size:11}}}},
+scales:{
+y:{beginAtZero:false,min:mMin,max:mMax,position:'left',grid:{color:'rgba(255,255,255,0.05)'},ticks:{color:'#22c55e',font:{size:11}}},
+y1:{beginAtZero:false,min:fMin,max:fMax,position:'right',grid:{display:false},ticks:{color:'#6b7280',font:{size:11}}},
+x:{grid:{display:false},ticks:{color:'#737373',font:{size:11}}}
+}
+}
+});
+
+const fCtx=document.getElementById('bodyfatChart').getContext('2d');
+if(bodyfatChartInstance)bodyfatChartInstance.destroy();
+const bfMin=Math.min(...last8.map(d=>d.fatPct))-1;
+const bfMax=Math.max(...last8.map(d=>d.fatPct))+1;
+bodyfatChartInstance=new Chart(fCtx,{
+type:'line',
+data:{
+labels:labels,
+datasets:[{
+label:'体脂率 (%)',
+data:last8.map(d=>d.fatPct),
+borderColor:'#3b82f6',
+backgroundColor:'rgba(59,130,246,0.1)',
+fill:true,
+tension:0.4,
+pointRadius:4,
+pointBackgroundColor:'#3b82f6'
+}]
+},
+options:{
+responsive:true,
+maintainAspectRatio:false,
+plugins:{legend:{display:false}},
+scales:{
+y:{beginAtZero:false,min:bfMin,max:bfMax,grid:{color:'rgba(255,255,255,0.05)'},ticks:{color:'#737373',font:{size:11}}},
+x:{grid:{display:false},ticks:{color:'#737373',font:{size:11}}}
+}
+}
+});
+
+const historyContainer=document.getElementById('body-comp-history');
+historyContainer.innerHTML=sorted.slice().reverse().map(b=>`
+<div class="card" style="margin-bottom:8px">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+<span style="font-size:14px;font-weight:600">${formatDateCN(b.date)}</span>
+<button class="icon-btn" style="width:28px;height:28px;font-size:12px" onclick="deleteBodycomp('${b.date}')">🗑</button>
+</div>
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;font-size:12px;text-align:center">
+<div><div style="color:var(--text-muted)">体重</div><div style="color:var(--text-neutral);font-weight:600">${b.weight}</div></div>
+<div><div style="color:var(--text-muted)">骨骼肌</div><div style="color:var(--text-positive);font-weight:600">${b.muscle}</div></div>
+<div><div style="color:var(--text-muted)">脂肪</div><div style="color:var(--text-negative);font-weight:600">${b.fatMass}</div></div>
+<div><div style="color:var(--text-muted)">体脂率</div><div style="color:var(--text-neutral);font-weight:600">${b.fatPct}%</div></div>
+</div>
+</div>
+`).join('');
+}
+
+function deleteBodycomp(date){
+if(!confirm('确定删除？'))return;
+const bodycomp=Store.get('bodycomp').filter(b=>b.date!==date);
+Store.set('bodycomp',bodycomp);
+renderProgress();
+showToast('已删除');
+}
+
+
+// ==================== ADMIN FUNCTIONS ====================
+function renderAdmin(){
+document.getElementById('admin-training-date').value=formatDate(new Date());
+document.getElementById('admin-sleep-date').value=formatDate(new Date());
+document.getElementById('admin-bodycomp-date').value=formatDate(new Date());
+loadProfile();
+renderAdminSleepHistory();
+renderAdminBodycompHistory();
+renderAdminTrainingTypeSelect();
+renderAdminTrainingHistory();
+renderDataOverview();
+}
+
+function renderAdminTrainingTypeSelect(){
+const db=Store.getTrainingDB()||DEFAULT_TRAINING_DB;
+const select=document.getElementById('t-type');
+select.innerHTML='<option value="">请选择...</option>';
+const freqGroup=document.createElement('optgroup');
+freqGroup.label='常用';
+db.frequent.forEach(t=>{const opt=document.createElement('option');opt.value=t.value;opt.textContent=t.label;freqGroup.appendChild(opt);});
+select.appendChild(freqGroup);
+const moreGroup=document.createElement('optgroup');
+moreGroup.label='更多';
+db.more.forEach(t=>{const opt=document.createElement('option');opt.value=t.value;opt.textContent=t.label;moreGroup.appendChild(opt);});
+select.appendChild(moreGroup);
+}
+
+function renderAdminTrainingHistory(){
+const training=Store.get('training');
+const sorted=[...training].sort((a,b)=>new Date(b.date)-new Date(a.date));
+const container=document.getElementById('admin-training-history');
+if(!sorted.length){container.innerHTML='<div class="empty-state"><div class="empty-state-icon">🏋️</div><div class="empty-state-text">暂无训练记录</div></div>';return;}
+container.innerHTML=sorted.map(t=>{
+const vol=calculateVolume(t.exercises);
+const rpeText={5:'轻松',7:'适中',8:'吃力',9:'很重',10:'极限'};
+const fullTypeLabel=getFullTypeLabel(t.type);
+return `<div class="card" style="margin-bottom:8px">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+<span style="font-size:14px;font-weight:600">${formatDateCN(t.date)} · ${fullTypeLabel}</span>
+<div>
+${t.subjectiveRating?`<span class="tag tag-green">${rpeText[t.subjectiveRating]||t.subjectiveRating}</span>`:''}
+<button class="btn btn-small btn-danger" onclick="deleteTraining('${t.date}')">删</button>
+</div>
+</div>
+<div style="font-size:12px;color:var(--text-muted);line-height:1.6">
+${t.duration}min ${vol?`· 容量${(vol/1000).toFixed(1)}k`:''} ${t.hr?`· 心率${t.hr}`:''}
+</div>
+${t.exercises.length?`<div style="font-size:12px;color:var(--text-muted);margin-top:4px">${t.exercises.map(e=>`${e.name} ${e.weight}kg×${e.sets}×${e.reps}`).join(' · ')}</div>`:''}
+</div>`;
+}).join('');
+}
+
+function renderAdminSleepHistory(){
+const sleep=Store.get('sleep');
+const sorted=[...sleep].sort((a,b)=>new Date(b.date)-new Date(a.date));
+const container=document.getElementById('admin-sleep-history');
+if(!sorted.length){container.innerHTML='<div class="empty-state"><div class="empty-state-icon">😴</div><div class="empty-state-text">暂无睡眠记录</div></div>';return;}
+container.innerHTML=sorted.map(s=>{
+if(s.source==='missing')return `<div class="card" style="margin-bottom:8px"><div class="list-item" style="padding:0"><div class="list-item-left"><div class="list-icon">❓</div><div><div class="list-title">${formatDateCN(s.date)}</div><div class="list-subtitle" style="color:var(--text-negative)">未记录</div></div></div></div></div>`;
+const emoji=s.score>=80?'😊':s.score>=60?'😐':'😴';
+const color=s.score>=80?'positive':s.score>=60?'neutral':'negative';
+return `<div class="card" style="margin-bottom:8px"><div class="list-item" style="padding:0"><div class="list-item-left"><div class="list-icon">${emoji}</div><div><div class="list-title">${formatDateCN(s.date)}</div><div class="list-subtitle">${s.duration}h · 评分${s.score} · 疲劳${s.fatigue}</div></div></div><div class="list-value" style="color:var(--text-${color})">${s.duration}h</div></div></div>`;
+}).join('');
+}
+
+function renderAdminBodycompHistory(){
+const bodycomp=Store.get('bodycomp');
+const sorted=[...bodycomp].sort((a,b)=>new Date(b.date)-new Date(a.date));
+const container=document.getElementById('admin-bodycomp-history');
+if(!sorted.length){container.innerHTML='<div class="empty-state"><div class="empty-state-icon">📊</div><div class="empty-state-text">暂无体测数据</div></div>';return;}
+container.innerHTML=sorted.map(b=>`
+<div class="card" style="margin-bottom:8px">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+<span style="font-size:14px;font-weight:600">${formatDateCN(b.date)}</span>
+<div>
+<span class="tag ${b.condition==='fasting'?'tag-blue':'tag-gray'}">${b.condition==='fasting'?'空腹':'训练后'}</span>
+<button class="btn btn-small btn-danger" onclick="deleteBodycomp('${b.date}')">删</button>
+</div>
+</div>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;font-size:12px">
+<div>体重: ${b.weight}kg</div>
+<div>骨骼肌: ${b.muscle}kg</div>
+<div>脂肪: ${b.fatMass}kg</div>
+<div>体脂率: ${b.fatPct}%</div>
+<div>BMR: ${b.bmr}</div>
+<div>BMI: ${b.bmi}</div>
+</div>
+</div>
+`).join('');
+}
+
+// ==================== SLEEP ADMIN ====================
+function handleSleepScreenshot(input){
+const files=input.files;
+if(!files.length)return;
+showToast('正在识别截图...');
+setTimeout(()=>{
+const container=document.getElementById('sleep-ocr-result');
+container.style.display='block';
+container.innerHTML=`
+<div class="ocr-preview">
+<div class="ocr-item"><span class="ocr-label">日期</span><span class="ocr-value high">${formatDate(new Date())}</span></div>
+<div class="ocr-item"><span class="ocr-label">睡眠时长</span><span class="ocr-value high">7.78h</span></div>
+<div class="ocr-item"><span class="ocr-label">深度睡眠</span><span class="ocr-value warn">0.67h (偏低)</span></div>
+<div class="ocr-item"><span class="ocr-label">睡眠评分</span><span class="ocr-value high">84分</span></div>
+<div class="ocr-item"><span class="ocr-label">就寝时间</span><span class="ocr-value high">22:17</span></div>
+<div class="ocr-item"><span class="ocr-label">起床时间</span><span class="ocr-value">07:13 (推算)</span></div>
+</div>
+<div class="form-group" style="margin-top:16px">
+<label class="form-label">今日主观疲劳度？</label>
+<input type="range" min="1" max="10" value="4" id="s-fatigue" oninput="document.getElementById('fatigue-val').textContent=this.value">
+<div class="slider-labels"><span>精力充沛</span><span id="fatigue-val">4</span><span>极度疲劳</span></div>
+</div>
+<button class="btn btn-primary" onclick="saveSleepOCR()">确认保存</button>
+`;
+showToast('识别完成，请确认数据');
+},1200);
+input.value='';
+}
+
+function saveSleepOCR(){
+const fatigue=parseInt(document.getElementById('s-fatigue').value)||5;
+const sleep=Store.get('sleep');
+sleep.push({date:document.getElementById('s-date').value||formatDate(new Date()),bedtime:'22:17',waketime:'07:13',duration:7.78,quality:4,fatigue:fatigue,deep:0.67,score:84,source:'screenshot'});
+Store.set('sleep',sleep);
+document.getElementById('sleep-ocr-result').style.display='none';
+showToast('睡眠记录已保存');
+renderAdminSleepHistory();
+}
+
+function markSleepMissing(){
+const sleep=Store.get('sleep');
+sleep.push({date:document.getElementById('s-date').value||formatDate(new Date()),source:'missing'});
+Store.set('sleep',sleep);
+showToast('已标记为未记录');
+renderAdminSleepHistory();
+}
+
+// ==================== BODYCOMP ADMIN ====================
+function handleBodycompFile(input){
+const file=input.files[0];
+if(!file)return;
+showToast('正在解析文件...');
+setTimeout(()=>{
+const preview=document.getElementById('bc-import-preview');
+preview.style.display='block';
+preview.innerHTML=`
+<div style="font-size:14px;margin-bottom:12px">📊 解析结果预览</div>
+<div class="ocr-preview">
+<div class="ocr-item"><span class="ocr-label">匹配记录</span><span class="ocr-value high">9 条</span></div>
+<div class="ocr-item"><span class="ocr-label">核心字段</span><span class="ocr-value high">全部匹配</span></div>
+<div class="ocr-item"><span class="ocr-label">测试状态</span><span class="ocr-value warn">第1次空腹，其余训练后</span></div>
+</div>
+<div style="margin-top:12px">
+<div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">最近3条预览：</div>
+<div style="font-size:13px;line-height:1.8">
+<div>6月5日: 67.2kg | 骨骼肌31.3 | 体脂17.8%</div>
+<div>5月23日: 67.2kg | 骨骼肌30.8 | 体脂19.0%</div>
+<div>5月8日: 66.4kg | 骨骼肌30.6 | 体脂18.6%</div>
+</div>
+</div>
+<button class="btn btn-primary" style="margin-top:12px" onclick="importBodycompDemo()">确认导入</button>
+`;
+showToast('文件解析完成');
+},1500);
+input.value='';
+}
+
+function importBodycompDemo(){
+const demo=[
+{date:'2026-01-21',weight:64.0,muscle:29.0,fatMass:12.9,fatPct:20.0,leanMass:51.1,bmr:1486,condition:'fasting',visceral:5},
+{date:'2026-02-27',weight:64.6,muscle:29.3,fatMass:12.5,fatPct:19.4,leanMass:52.1,bmr:1495,condition:'post-workout-light',visceral:5},
+{date:'2026-03-13',weight:66.1,muscle:30.1,fatMass:12.6,fatPct:19.1,leanMass:53.5,bmr:1525,condition:'post-workout-full',visceral:5},
+{date:'2026-03-27',weight:65.9,muscle:30.0,fatMass:12.6,fatPct:19.1,leanMass:53.3,bmr:1522,condition:'post-workout-full',visceral:5},
+{date:'2026-04-10',weight:65.8,muscle:30.3,fatMass:12.1,fatPct:18.4,leanMass:53.7,bmr:1530,condition:'post-workout-full',visceral:5},
+{date:'2026-04-25',weight:67.1,muscle:30.6,fatMass:13.0,fatPct:19.4,leanMass:54.1,bmr:1538,condition:'post-workout-full',visceral:5},
+{date:'2026-05-08',weight:66.4,muscle:30.6,fatMass:12.4,fatPct:18.6,leanMass:54.0,bmr:1537,condition:'post-workout-full',visceral:5},
+{date:'2026-05-23',weight:67.2,muscle:30.8,fatMass:12.8,fatPct:19.0,leanMass:54.4,bmr:1546,condition:'post-workout-full',visceral:5},
+{date:'2026-06-05',weight:67.2,muscle:31.3,fatMass:12.0,fatPct:17.8,leanMass:55.2,bmr:1563,condition:'post-workout-full',visceral:5}
+];
+Store.set('bodycomp',demo);
+document.getElementById('bc-import-preview').style.display='none';
+showToast('已导入 9 条体测记录');
+renderAdminBodycompHistory();
+renderProgress();
+}
+
+function addBodycomp(){
+const record={
+date:document.getElementById('bc-date').value,
+condition:document.getElementById('bc-condition').value,
+weight:parseFloat(document.getElementById('bc-weight').value)||0,
+muscle:parseFloat(document.getElementById('bc-muscle').value)||0,
+fatMass:parseFloat(document.getElementById('bc-fat').value)||0,
+fatPct:parseFloat(document.getElementById('bc-fatpct').value)||0,
+leanMass:parseFloat(document.getElementById('bc-lean').value)||0,
+bmr:parseInt(document.getElementById('bc-bmr').value)||0,
+visceral:parseInt(document.getElementById('bc-visceral').value)||0
+};
+const bodycomp=Store.get('bodycomp');
+const existing=bodycomp.findIndex(b=>b.date===record.date);
+if(existing>=0)bodycomp[existing]=record;else bodycomp.push(record);
+Store.set('bodycomp',bodycomp);
+showToast('体测数据已保存');
+renderAdminBodycompHistory();
+renderProgress();
+}
+
+// ==================== TRAINING DB MANAGER ====================
+function openTrainingDBManager(){
+const modal=document.getElementById('training-db-modal');
+const body=document.getElementById('training-db-body');
+const db=Store.getTrainingDB()||DEFAULT_TRAINING_DB;
+body.innerHTML=`
+<div style="margin-bottom:20px">
+<div style="font-size:14px;font-weight:600;margin-bottom:12px">常用训练类型</div>
+<div id="db-frequent-list">
+${db.frequent.map((t,i)=>`
+<div class="db-manager-item">
+<div class="db-name">${t.label}</div>
+<div class="db-actions">
+<button onclick="moveTrainingType('frequent',${i},'more')">↓ 更多</button>
+<button onclick="editTrainingType('frequent',${i})">编辑</button>
+<button onclick="deleteTrainingType('frequent',${i})">删除</button>
+</div>
+</div>
+`).join('')}
+</div>
+<button class="btn btn-secondary" style="margin-top:8px" onclick="addTrainingType('frequent')">+ 添加常用类型</button>
+</div>
+<div style="margin-bottom:20px">
+<div style="font-size:14px;font-weight:600;margin-bottom:12px">更多训练类型</div>
+<div id="db-more-list">
+${db.more.map((t,i)=>`
+<div class="db-manager-item">
+<div class="db-name">${t.label}</div>
+<div class="db-actions">
+<button onclick="moveTrainingType('more',${i},'frequent')">↑ 常用</button>
+<button onclick="editTrainingType('more',${i})">编辑</button>
+<button onclick="deleteTrainingType('more',${i})">删除</button>
+</div>
+</div>
+`).join('')}
+</div>
+<button class="btn btn-secondary" style="margin-top:8px" onclick="addTrainingType('more')">+ 添加更多类型</button>
+</div>
+<div style="font-size:12px;color:var(--text-muted);margin-top:16px">提示：预设类型不可删除，但可以移到"更多"分组。</div>
+`;
+modal.classList.add('active');
+}
+
+function moveTrainingType(from,idx,to){
+const db=Store.getTrainingDB()||DEFAULT_TRAINING_DB;
+const item=db[from].splice(idx,1)[0];
+db[to].push(item);
+Store.setTrainingDB(db);
+openTrainingDBManager();
+renderAdminTrainingTypeSelect();
+showToast('已移动');
+}
+
+function deleteTrainingType(group,idx){
+const db=Store.getTrainingDB()||DEFAULT_TRAINING_DB;
+const defaultValues=['func-push','func-pull','func-legs','func-full','hiit','cardio','core','rest','yoga','outdoor','run-outdoor','run-indoor','walk','cycle','swim','box','climb','hike','dance','ski','skate','ball-basket','ball-tennis','ball-soccer','golf','pilates','taiji','meditation','other'];
+if(defaultValues.includes(db[group][idx].value)){showToast('预设类型不可删除，但可以移到"更多"分组','error');return;}
+if(!confirm('确定删除？'))return;
+db[group].splice(idx,1);
+Store.setTrainingDB(db);
+openTrainingDBManager();
+renderAdminTrainingTypeSelect();
+showToast('已删除');
+}
+
+function addTrainingType(group){
+const name=prompt('请输入训练类型名称：');
+if(!name)return;
+const value='custom-'+Date.now();
+const db=Store.getTrainingDB()||DEFAULT_TRAINING_DB;
+db[group].push({value,label:name});
+Store.setTrainingDB(db);
+openTrainingDBManager();
+renderAdminTrainingTypeSelect();
+showToast('已添加');
+}
+
+function editTrainingType(group,idx){
+const db=Store.getTrainingDB()||DEFAULT_TRAINING_DB;
+const newName=prompt('修改名称：',db[group][idx].label);
+if(!newName)return;
+db[group][idx].label=newName;
+Store.setTrainingDB(db);
+openTrainingDBManager();
+renderAdminTrainingTypeSelect();
+showToast('已修改');
+}
+
+// ==================== EXERCISE DB MANAGER ====================
+function openExerciseDBManager(){
+const modal=document.getElementById('exercise-db-modal');
+const body=document.getElementById('exercise-db-body');
+const db=Store.getExerciseDB()||DEFAULT_EXERCISE_DB;
+const categories=Object.keys(db);
+body.innerHTML=`
+<div style="margin-bottom:16px">
+<div style="font-size:14px;font-weight:600;margin-bottom:12px">动作分类</div>
+${categories.map(cat=>`
+<div style="margin-bottom:16px">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+<span style="font-size:13px;font-weight:600;color:var(--text-muted)">${cat}</span>
+<button class="btn btn-small btn-secondary" onclick="addExerciseToCategory('${cat}')">+ 添加动作</button>
+</div>
+${db[cat].map((ex,i)=>`
+<div class="db-manager-item">
+<div class="db-name">${ex}</div>
+<div class="db-actions">
+<button onclick="editExercise('${cat}',${i})">编辑</button>
+<button onclick="deleteExercise('${cat}',${i})">删除</button>
+</div>
+</div>
+`).join('')}
+</div>
+`).join('')}
+</div>
+<div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border-color)">
+<button class="btn btn-secondary" onclick="addExerciseCategory()">+ 新建分类</button>
+</div>
+`;
+modal.classList.add('active');
+}
+
+function addExerciseToCategory(cat){
+const name=prompt('请输入动作名称：');
+if(!name)return;
+const db=Store.getExerciseDB()||DEFAULT_EXERCISE_DB;
+db[cat].push(name);
+Store.setExerciseDB(db);
+openExerciseDBManager();
+showToast('已添加');
+}
+
+function deleteExercise(cat,idx){
+if(!confirm('确定删除？'))return;
+const db=Store.getExerciseDB()||DEFAULT_EXERCISE_DB;
+db[cat].splice(idx,1);
+Store.setExerciseDB(db);
+openExerciseDBManager();
+showToast('已删除');
+}
+
+function editExercise(cat,idx){
+const db=Store.getExerciseDB()||DEFAULT_EXERCISE_DB;
+const newName=prompt('修改动作名称：',db[cat][idx]);
+if(!newName)return;
+db[cat][idx]=newName;
+Store.setExerciseDB(db);
+openExerciseDBManager();
+showToast('已修改');
+}
+
+function addExerciseCategory(){
+const name=prompt('请输入新分类名称：');
+if(!name)return;
+const db=Store.getExerciseDB()||DEFAULT_EXERCISE_DB;
+if(db[name]){showToast('分类已存在','error');return;}
+db[name]=[];
+Store.setExerciseDB(db);
+openExerciseDBManager();
+showToast('已创建分类');
+}
+
+
+// ==================== TRAINING CALENDAR ====================
+function openTrainingCalendar(){
+const modal=document.getElementById('calendar-modal');
+const title=document.getElementById('calendar-modal-title');
+const body=document.getElementById('calendar-modal-body');
+title.textContent='编辑本周训练';
+const weekStart=getWeekStart(new Date());
+const calendar=Store.getCalendar();
+const db=Store.getTrainingDB()||DEFAULT_TRAINING_DB;
+const allTypes=[...db.frequent,...db.more];
+
+let html='<div style="margin-bottom:16px">';
+for(let i=0;i<7;i++){
+const date=formatDate(offsetDate(weekStart,i));
+const plan=calendar[date]||{};
+const dayName=DAYS[i];
+html+=`
+<div class="day-row">
+<div class="day-label">${dayName}</div>
+<select class="form-select day-select" id="cal-type-${i}" onchange="onCalendarTypeChange(${i})">
+<option value="rest">休息/恢复</option>
+${allTypes.map(t=>`<option value="${t.value}" ${plan.type===t.value?'selected':''}>${t.label}</option>`).join('')}
+</select>
+</div>
+<div style="display:flex;gap:8px;margin-left:50px;margin-bottom:10px">
+<input type="time" class="form-input" id="cal-time-${i}" value="${plan.time||'14:00'}" style="flex:1" ${plan.type==='rest'?'disabled':''}>
+<input type="number" class="form-input" id="cal-duration-${i}" value="${plan.duration||60}" placeholder="时长" style="flex:1" ${plan.type==='rest'?'disabled':''}>
+</div>`;
+}
+html+='</div>';
+html+='<button class="btn btn-primary" onclick="saveCalendar()">保存本周计划</button>';
+html+='<button class="btn btn-secondary" onclick="copyLastWeek()">复制上周</button>';
+body.innerHTML=html;
+modal.classList.add('active');
+}
+
+function openNextWeekCalendar(){
+const modal=document.getElementById('calendar-modal');
+const title=document.getElementById('calendar-modal-title');
+const body=document.getElementById('calendar-modal-body');
+title.textContent='规划下周训练';
+const nextWeekStart=offsetDate(getWeekStart(new Date()),7);
+const calendar=Store.getCalendar();
+const db=Store.getTrainingDB()||DEFAULT_TRAINING_DB;
+const allTypes=[...db.frequent,...db.more];
+
+let html='<div style="margin-bottom:16px">';
+for(let i=0;i<7;i++){
+const date=formatDate(offsetDate(nextWeekStart,i));
+const plan=calendar[date]||{};
+const dayName=DAYS[i];
+html+=`
+<div class="day-row">
+<div class="day-label">${dayName}</div>
+<select class="form-select day-select" id="cal-type-${i}" onchange="onCalendarTypeChange(${i})">
+<option value="rest">休息/恢复</option>
+${allTypes.map(t=>`<option value="${t.value}" ${plan.type===t.value?'selected':''}>${t.label}</option>`).join('')}
+</select>
+</div>
+<div style="display:flex;gap:8px;margin-left:50px;margin-bottom:10px">
+<input type="time" class="form-input" id="cal-time-${i}" value="${plan.time||'14:00'}" style="flex:1" ${plan.type==='rest'?'disabled':''}>
+<input type="number" class="form-input" id="cal-duration-${i}" value="${plan.duration||60}" placeholder="时长" style="flex:1" ${plan.type==='rest'?'disabled':''}>
+</div>`;
+}
+html+='</div>';
+html+='<button class="btn btn-primary" onclick="saveCalendar(true)">保存下周计划</button>';
+html+='<button class="btn btn-secondary" onclick="copyThisWeek()">复制本周</button>';
+body.innerHTML=html;
+modal.classList.add('active');
+}
+
+function onCalendarTypeChange(idx){
+const type=document.getElementById('cal-type-'+idx).value;
+const timeInput=document.getElementById('cal-time-'+idx);
+const durInput=document.getElementById('cal-duration-'+idx);
+if(type==='rest'){timeInput.disabled=true;durInput.disabled=true;}
+else{timeInput.disabled=false;durInput.disabled=false;}
+}
+
+function saveCalendar(isNextWeek){
+const calendar=Store.getCalendar();
+const weekStart=isNextWeek?offsetDate(getWeekStart(new Date()),7):getWeekStart(new Date());
+for(let i=0;i<7;i++){
+const date=formatDate(offsetDate(weekStart,i));
+const type=document.getElementById('cal-type-'+i).value;
+if(type==='rest'){calendar[date]={type:'rest',done:false};}
+else{calendar[date]={type:type,time:document.getElementById('cal-time-'+i).value,duration:parseInt(document.getElementById('cal-duration-'+i).value)||60,done:false};}
+}
+Store.setCalendar(calendar);
+closeCalendarModal();
+showToast('训练计划已保存');
+renderTraining();
+}
+
+function copyLastWeek(){
+const calendar=Store.getCalendar();
+const lastWeekStart=offsetDate(getWeekStart(new Date()),-7);
+const thisWeekStart=getWeekStart(new Date());
+for(let i=0;i<7;i++){
+const lastDate=formatDate(offsetDate(lastWeekStart,i));
+const thisDate=formatDate(offsetDate(thisWeekStart,i));
+if(calendar[lastDate]){calendar[thisDate]={...calendar[lastDate],done:false};}
+}
+Store.setCalendar(calendar);
+showToast('已复制上周计划');
+openTrainingCalendar();
+}
+
+function copyThisWeek(){
+const calendar=Store.getCalendar();
+const thisWeekStart=getWeekStart(new Date());
+const nextWeekStart=offsetDate(thisWeekStart,7);
+for(let i=0;i<7;i++){
+const thisDate=formatDate(offsetDate(thisWeekStart,i));
+const nextDate=formatDate(offsetDate(nextWeekStart,i));
+if(calendar[thisDate]){calendar[nextDate]={...calendar[thisDate],done:false};}
+}
+Store.setCalendar(calendar);
+showToast('已复制本周计划');
+openNextWeekCalendar();
+}
+
+// ==================== TRAINING RECORD ====================
+let exerciseCount=0;
+
+function onTrainingTypeChange(){
+const type=document.getElementById('t-type').value;
+const isStrength=['func-push','func-pull','func-legs','func-full'].includes(type);
+document.getElementById('strength-section').style.display=isStrength?'block':'none';
+document.getElementById('cardio-section').style.display=['hiit','cardio','outdoor'].includes(type)?'block':'none';
+}
+
+function addExerciseRow(){
+exerciseCount++;
+const container=document.getElementById('exercise-list');
+const db=Store.getExerciseDB()||DEFAULT_EXERCISE_DB;
+const div=document.createElement('div');
+div.className='exercise-row';
+div.id='ex-'+exerciseCount;
+div.innerHTML=`
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+<span style="font-size:13px;color:var(--text-muted)">动作 ${exerciseCount}</span>
+<button onclick="removeExerciseRow('ex-${exerciseCount}')" style="background:none;border:none;color:var(--text-muted);font-size:16px;cursor:pointer">×</button>
+</div>
+<select class="form-select" id="ex-name-${exerciseCount}" onchange="onExerciseChange(${exerciseCount})">
+<option value="">选择动作...</option>
+${Object.entries(db).map(([cat,exs])=>`<optgroup label="${cat}">${exs.map(e=>`<option value="${e}">${e}</option>`).join('')}</optgroup>`).join('')}
+</select>
+<div class="row-grid">
+<select class="form-select" id="ex-weight-${exerciseCount}" onchange="calcVolume()"><option value="">重量</option>${Array.from({length:200},(_,i)=>`<option value="${i+1}">${i+1}kg</option>`).join('')}</select>
+<select class="form-select" id="ex-sets-${exerciseCount}" onchange="calcVolume()"><option value="">组数</option>${Array.from({length:10},(_,i)=>`<option value="${i+1}">${i+1}</option>`).join('')}</select>
+<select class="form-select" id="ex-reps-${exerciseCount}" onchange="calcVolume()"><option value="">次数</option>${Array.from({length:30},(_,i)=>`<option value="${i+1}">${i+1}</option>`).join('')}</select>
+</div>
+<div class="hint" id="ex-hint-${exerciseCount}"></div>
+`;
+container.appendChild(div);
+}
+
+function removeExerciseRow(id){
+document.getElementById(id).remove();
+calcVolume();
+}
+
+function onExerciseChange(idx){
+const name=document.getElementById('ex-name-'+idx).value;
+if(!name)return;
+const training=Store.get('training');
+const lastSame=training.slice().reverse().find(t=>t.exercises.some(e=>e.name===name));
+const hint=document.getElementById('ex-hint-'+idx);
+if(lastSame){
+const lastEx=lastSame.exercises.find(e=>e.name===name);
+let suggest='';
+if(lastEx.rpe<=6)suggest=`建议 +2.5kg → ${lastEx.weight+2.5}kg`;
+else if(lastEx.rpe<=8)suggest=`建议维持 ${lastEx.weight}kg`;
+else suggest=`建议减载 → ${lastEx.weight-2.5}kg`;
+hint.innerHTML=`上次：${lastEx.weight}kg×${lastEx.sets}×${lastEx.reps} <span class="positive">${suggest}</span>`;
+document.getElementById('ex-weight-'+idx).value=lastEx.rpe<=6?lastEx.weight+2.5:lastEx.weight;
+document.getElementById('ex-sets-'+idx).value=lastEx.sets;
+document.getElementById('ex-reps-'+idx).value=lastEx.reps;
+}else{
+hint.innerHTML='<span class="positive">首次记录，请填写实际数据</span>';
+}
+calcVolume();
+}
+
+function calcVolume(){
+let total=0;
+document.querySelectorAll('.exercise-row').forEach(row=>{
+const idx=row.id.split('-')[1];
+const w=parseFloat(document.getElementById('ex-weight-'+idx)?.value)||0;
+const s=parseInt(document.getElementById('ex-sets-'+idx)?.value)||0;
+const r=parseInt(document.getElementById('ex-reps-'+idx)?.value)||0;
+total+=w*s*r;
+});
+document.getElementById('volume-display').textContent=total.toLocaleString();
+}
+
+function handleTrainingScreenshot(input){
+const file=input.files[0];
+if(!file)return;
+showToast('正在识别截图...');
+setTimeout(()=>{
+const container=document.getElementById('training-ocr-result');
+container.style.display='block';
+container.innerHTML=`
+<div class="ocr-preview">
+<div class="ocr-item"><span class="ocr-label">训练类型</span><span class="ocr-value high">功能性力量训练</span></div>
+<div class="ocr-item"><span class="ocr-label">时间段</span><span class="ocr-value">14:02-15:03</span></div>
+<div class="ocr-item"><span class="ocr-label">时长</span><span class="ocr-value high">61min</span></div>
+<div class="ocr-item"><span class="ocr-label">动态千卡</span><span class="ocr-value">382</span></div>
+<div class="ocr-item"><span class="ocr-label">平均心率</span><span class="ocr-value">150 bpm</span></div>
+</div>
+`;
+document.getElementById('t-duration').value=61;
+showToast('已提取截图信息');
+},1200);
+input.value='';
+}
+
+function saveTraining(){
+const type=document.getElementById('t-type').value;
+if(!type){showToast('请选择训练类型','error');return;}
+const isStrength=['func-push','func-pull','func-legs','func-full'].includes(type);
+const exercises=[];
+if(isStrength){
+document.querySelectorAll('.exercise-row').forEach(row=>{
+const idx=row.id.split('-')[1];
+const name=document.getElementById('ex-name-'+idx)?.value;
+if(!name)return;
+exercises.push({
+name:name,
+weight:parseFloat(document.getElementById('ex-weight-'+idx)?.value)||0,
+sets:parseInt(document.getElementById('ex-sets-'+idx)?.value)||0,
+reps:parseInt(document.getElementById('ex-reps-'+idx)?.value)||0
+});
+});
+}
+const record={
+date:document.getElementById('t-date').value||formatDate(new Date()),
+type:type,
+duration:parseInt(document.getElementById('t-duration').value)||0,
+exercises:exercises,
+hr:parseInt(document.getElementById('t-hr')?.value)||0,
+calories:parseInt(document.getElementById('t-calories')?.value)||0,
+distance:parseFloat(document.getElementById('t-distance')?.value)||0,
+notes:document.getElementById('t-notes').value
+};
+const training=Store.get('training');
+training.push(record);
+Store.set('training',training);
+
+// Mark calendar as done
+const calendar=Store.getCalendar();
+if(calendar[record.date]){calendar[record.date].done=true;}
+Store.setCalendar(calendar);
+
+// Show subjective rating modal
+const modal=document.getElementById('rating-modal');
+const modalBody=document.getElementById('rating-modal-body');
+modalBody.innerHTML=`
+<div style="text-align:center;margin-bottom:20px">
+<div style="font-size:48px;margin-bottom:8px">✓</div>
+<div style="font-size:16px;font-weight:600">训练已记录</div>
+<div style="font-size:13px;color:var(--text-muted);margin-top:4px">容量：${document.getElementById('volume-display').textContent} kg · ${record.duration}min</div>
+</div>
+<div style="font-size:14px;font-weight:500;margin-bottom:12px">今日训练整体强度如何？</div>
+<div class="rating-options">
+<div class="rating-option" onclick="selectRPE(this,5)">
+<div class="rpe-num green">5</div>
+<div class="rpe-text">轻松</div>
+<div class="rpe-desc">可以一直做下去</div>
+</div>
+<div class="rating-option" onclick="selectRPE(this,7)">
+<div class="rpe-num green">7</div>
+<div class="rpe-text">适中</div>
+<div class="rpe-desc">有点累，还能做3-4个</div>
+</div>
+<div class="rating-option" onclick="selectRPE(this,8)">
+<div class="rpe-num yellow">8</div>
+<div class="rpe-text">吃力</div>
+<div class="rpe-desc">还能做1-2个，很累</div>
+</div>
+<div class="rating-option" onclick="selectRPE(this,9)">
+<div class="rpe-num orange">9</div>
+<div class="rpe-text">很重</div>
+<div class="rpe-desc">还能做1个，不确定</div>
+</div>
+<div class="rating-option" onclick="selectRPE(this,10)">
+<div class="rpe-num red">10</div>
+<div class="rpe-text">极限</div>
+<div class="rpe-desc">完全力竭，一个都做不了</div>
+</div>
+</div>
+<button class="btn btn-primary" onclick="saveSubjectiveRating()">确认</button>
+<button class="btn btn-secondary" onclick="closeModal()">跳过</button>
+`;
+modal.classList.add('active');
+
+// Reset form
+document.getElementById('exercise-list').innerHTML='';
+exerciseCount=0;
+document.getElementById('t-type').value='';
+document.getElementById('strength-section').style.display='none';
+document.getElementById('cardio-section').style.display='none';
+document.getElementById('training-ocr-result').style.display='none';
+showToast('训练记录已保存');
+renderAdminTrainingHistory();
+renderTraining();
+}
+
+let selectedRPE=null;
+function selectRPE(el,rpe){
+document.querySelectorAll('.rating-option').forEach(o=>o.classList.remove('selected'));
+el.classList.add('selected');
+selectedRPE=rpe;
+}
+
+function saveSubjectiveRating(){
+if(!selectedRPE){showToast('请选择强度等级','error');return;}
+const training=Store.get('training');
+if(training.length)training[training.length-1].subjectiveRating=selectedRPE;
+Store.set('training',training);
+selectedRPE=null;
+closeModal();
+showToast('主观评价已保存');
+}
+
+function deleteTraining(date){
+if(!confirm('确定删除？'))return;
+const training=Store.get('training').filter(t=>t.date!==date);
+Store.set('training',training);
+renderAdminTrainingHistory();
+showToast('已删除');
+}
+
+function startTraining(){
+showToast('计时器功能开发中，请先直接训练后录入');
+}
+
+function useWorkoutPlan(){
+if(!window.currentWorkoutPlan||window.currentWorkoutPlan.length===0){showToast('没有可使用的计划','error');return;}
+
+// 预填充 Admin 训练录入表单
+switchPage('admin');
+setTimeout(()=>{
+// 切换到训练标签
+const trainingTab=document.querySelector('.admin-nav-item:nth-child(4)');
+if(trainingTab)trainingTab.click();
+
+// 设置类型
+document.getElementById('t-type').value=window.currentPlanType||'func-push';
+onTrainingTypeChange();
+
+// 清空现有动作
+document.getElementById('exercise-list').innerHTML='';
+exerciseCount=0;
+
+// 添加计划中的动作
+for(const ex of window.currentWorkoutPlan){
+addExerciseRow();
+const idx=exerciseCount;
+document.getElementById('ex-name-'+idx).value=ex.name;
+document.getElementById('ex-weight-'+idx).value=ex.weight;
+document.getElementById('ex-sets-'+idx).value=ex.sets;
+document.getElementById('ex-reps-'+idx).value=ex.reps;
+}
+calcVolume();
+showToast('已预填充训练计划，请确认后保存');
+},300);
+}
+
+function regeneratePlan(){
+renderTraining();
+showToast('已重新生成计划');
+}
+
+// ==================== BACKUP ====================
+function exportData(){
+const data={training:Store.get('training'),sleep:Store.get('sleep'),bodycomp:Store.get('bodycomp'),profile:Store.getProfile(),calendar:Store.getCalendar(),exportDate:new Date().toISOString()};
+const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+const url=URL.createObjectURL(blob);
+const a=document.createElement('a');a.href=url;a.download=`fitlog_backup_${formatDate(new Date())}.json`;a.click();URL.revokeObjectURL(url);
+showToast('数据已导出');
+}
+
+function importData(input){
+const file=input.files[0];if(!file)return;
+const reader=new FileReader();
+reader.onload=e=>{
+try{
+const data=JSON.parse(e.target.result);
+if(data.training)Store.set('training',data.training);
+if(data.sleep)Store.set('sleep',data.sleep);
+if(data.bodycomp)Store.set('bodycomp',data.bodycomp);
+if(data.profile)Store.setProfile(data.profile);
+if(data.calendar)Store.setCalendar(data.calendar);
+showToast('数据导入成功');renderDataOverview();
+}catch{showToast('文件格式错误','error');}
+};
+reader.readAsText(file);input.value='';
+}
+
+function clearAllData(){
+if(!confirm('⚠️ 确定清除所有数据？此操作不可恢复！'))return;
+localStorage.removeItem('fitlog_training');localStorage.removeItem('fitlog_sleep');localStorage.removeItem('fitlog_bodycomp');localStorage.removeItem('fitlog_profile');localStorage.removeItem('fitlog_training_db');localStorage.removeItem('fitlog_exercise_db');localStorage.removeItem('fitlog_calendar');
+showToast('所有数据已清除');setTimeout(()=>location.reload(),1000);
+}
+
+function renderDataOverview(){
+const container=document.getElementById('data-overview');
+const p=Store.getProfile();
+const t=Store.get('training');
+const s=Store.get('sleep');
+const b=Store.get('bodycomp');
+container.innerHTML=`
+<div class="list-item" style="padding:8px 0"><span class="list-title">档案</span><span class="list-value" style="color:var(--text-${p.name?'positive':'negative'})">${p.name?'已设置':'未设置'}</span></div>
+<div class="list-item" style="padding:8px 0"><span class="list-title">训练记录</span><span class="list-value" style="color:var(--text-${t.length?'positive':'negative'})">${t.length} 条</span></div>
+<div class="list-item" style="padding:8px 0"><span class="list-title">睡眠记录</span><span class="list-value" style="color:var(--text-${s.length?'positive':'negative'})">${s.length} 条</span></div>
+<div class="list-item" style="padding:8px 0"><span class="list-title">体测记录</span><span class="list-value" style="color:var(--text-${b.length?'positive':'negative'})">${b.length} 条</span></div>
+`;
+}
+
+// ==================== INIT ====================
+function initDemoData(){
+if(Store.get('training').length===0){
+const today=new Date();
+Store.set('training',[
+{date:formatDate(offsetDate(today,-1)),type:'func-push',exercises:[{name:'杠铃卧推',weight:82.5,sets:5,reps:5},{name:'哑铃推举',weight:28,sets:4,reps:10},{name:'三头下压',weight:35,sets:4,reps:12}],duration:65,subjectiveRating:7,notes:''},
+{date:formatDate(offsetDate(today,-3)),type:'func-pull',exercises:[{name:'引体向上',weight:0,sets:4,reps:8},{name:'杠铃划船',weight:70,sets:4,reps:10},{name:'面拉',weight:20,sets:4,reps:15}],duration:60,subjectiveRating:7,notes:''},
+{date:formatDate(offsetDate(today,-5)),type:'func-legs',exercises:[{name:'深蹲',weight:100,sets:5,reps:5},{name:'腿举',weight:180,sets:4,reps:12},{name:'腿弯举',weight:45,sets:4,reps:12}],duration:70,subjectiveRating:9,notes:''},
+{date:formatDate(offsetDate(today,-8)),type:'func-push',exercises:[{name:'杠铃卧推',weight:80,sets:5,reps:5},{name:'哑铃推举',weight:26,sets:4,reps:10},{name:'三头下压',weight:32.5,sets:4,reps:12}],duration:62,subjectiveRating:7,notes:''},
+{date:formatDate(offsetDate(today,-10)),type:'func-pull',exercises:[{name:'引体向上',weight:0,sets:4,reps:8},{name:'杠铃划船',weight:67.5,sets:4,reps:10},{name:'面拉',weight:17.5,sets:4,reps:15}],duration:58,subjectiveRating:7,notes:''},
+{date:formatDate(offsetDate(today,-12)),type:'func-legs',exercises:[{name:'深蹲',weight:95,sets:5,reps:5},{name:'腿举',weight:170,sets:4,reps:12},{name:'腿弯举',weight:42.5,sets:4,reps:12}],duration:68,subjectiveRating:8,notes:''}
+]);
+}
+if(Store.get('sleep').length===0){
+const sleepData=[];
+for(let i=1;i<=7;i++){
+const duration=5.5+Math.random()*3;
+const quality=Math.floor(2+Math.random()*3);
+sleepData.push({date:formatDate(offsetDate(new Date(),-i)),bedtime:'23:30',waketime:'07:00',duration:parseFloat(duration.toFixed(1)),quality:quality,fatigue:Math.floor(3+Math.random()*5),deep:parseFloat((duration*0.1).toFixed(2)),score:Math.floor(60+Math.random()*25),source:'screenshot'});
+}
+Store.set('sleep',sleepData);
+}
+if(Store.get('bodycomp').length===0){
+const bodyData=[];
+for(let i=0;i<6;i++){
+const weight=75-i*0.3+Math.random()*0.4;
+const muscle=38+i*0.1+Math.random()*0.2;
+const fat=12-i*0.15+Math.random()*0.2;
+bodyData.push({date:formatDate(offsetDate(new Date(),-i*14)),weight:parseFloat(weight.toFixed(1)),muscle:parseFloat(muscle.toFixed(1)),fatMass:parseFloat(fat.toFixed(1)),fatPct:parseFloat((fat/weight*100).toFixed(1)),leanMass:parseFloat((weight-fat).toFixed(1)),bmr:Math.floor(1650+i*5),bmi:parseFloat((weight/1.725/1.725).toFixed(1)),condition:'post-workout-full',visceral:5});
+}
+Store.set('bodycomp',bodyData);
+}
+const profile=Store.getProfile();
+if(!profile.name){
+Store.setProfile({name:'用户',gender:'male',birthday:'1991-01-01',age:35,height:172.5,city:'北京',cooking:'partial',goal:'muscle',bodyGoal:'strong',bodyGoalTargets:{smi:10.5,fatPct:12,muscle:'31.3'},injuries:[],schedule:['func-push','rest','func-legs','hiit','func-pull','rest','cardio']});
+}
+// Init calendar from schedule
+const calendar=Store.getCalendar();
+if(Object.keys(calendar).length===0){
+const weekStart=getWeekStart(new Date());
+const schedule=Store.getProfile().schedule||['func-push','rest','func-legs','hiit','func-pull','rest','cardio'];
+for(let i=0;i<7;i++){
+const date=formatDate(offsetDate(weekStart,i));
+const type=schedule[i]||'rest';
+if(type==='rest'){calendar[date]={type:'rest',done:false};}
+else{calendar[date]={type:type,time:'14:00',duration:65,done:false};}
+}
+Store.setCalendar(calendar);
+}
+}
+
+document.addEventListener('DOMContentLoaded',()=>{
+initDBs();
+initDemoData();
+initTrainingModeDays();
+document.getElementById('p-birthday').value='1991-01-01';
+document.getElementById('p-age-display').textContent=calculateAge('1991-01-01')+'岁';
+document.getElementById('s-date').value=formatDate(new Date());
+document.getElementById('bc-date').value=formatDate(new Date());
+document.getElementById('t-date').value=formatDate(new Date());
+loadProfile();
+renderTraining();
+renderNutrition();
+renderRecovery();
+renderProgress();
+renderAdmin();
+});
+</script>
+</body>
+</html>
